@@ -1,6 +1,9 @@
 import { query } from '@/lib/db';
 import { getSession, getUserPermissions } from '@/lib/auth';
 import { sendSystemEmail } from '@/lib/mailer';
+import { hashPassword } from '@/lib/passwordUtils';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function GET() {
   const session = await getSession();
@@ -28,11 +31,15 @@ export async function POST(request) {
   try {
     const { name, email, password, role = 'STAFF', designation, permissionScopes } = await request.json();
 
-    const finalPassword = (password && password.trim()) ? password.trim() : '12345678';
+    const plainPassword = (password && password.trim()) ? password.trim() : '12345678';
     const cleanEmail = email.trim().toLowerCase();
 
     if (!name || !cleanEmail) {
       return Response.json({ error: 'Name and email are required' }, { status: 400 });
+    }
+
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      return Response.json({ error: 'Please enter a valid email address (e.g. user@company.com)' }, { status: 400 });
     }
 
     const userRole = role === 'ADMIN' ? 'ADMIN' : 'STAFF';
@@ -54,10 +61,12 @@ export async function POST(request) {
       return Response.json({ error: 'Account with this email already exists' }, { status: 400 });
     }
 
-    // Insert user
+    const hashedPassword = hashPassword(plainPassword);
+
+    // Insert user with secure hash
     const result = await query(
       'INSERT INTO users (email, password, name, role, designation, permission_scopes, must_change_password) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [cleanEmail, finalPassword, name, userRole, userDesignation, permissionScopes || null, mustChangePassword]
+      [cleanEmail, hashedPassword, name, userRole, userDesignation, permissionScopes || null, mustChangePassword]
     );
 
     // Send email notification to new staff member
@@ -70,7 +79,7 @@ export async function POST(request) {
         direct_recipient: cleanEmail,
         user_name: name,
         user_email: cleanEmail,
-        temp_password: finalPassword,
+        temp_password: plainPassword,
         portal_url: portalUrl
       }).catch(e => console.error('Failed to dispatch staff registration email:', e));
     }

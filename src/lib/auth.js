@@ -1,8 +1,26 @@
 import { query } from './db';
 import { cookies } from 'next/headers';
-
+import crypto from 'crypto';
 
 const SESSION_COOKIE_NAME = 'company_session';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'iss_portal_session_hmac_secret_2026_secured_key';
+
+function signSession(payloadBase64) {
+  return crypto.createHmac('sha256', SESSION_SECRET).update(payloadBase64).digest('hex');
+}
+
+function verifySessionSignature(payloadBase64, signatureHex) {
+  if (!payloadBase64 || !signatureHex) return false;
+  try {
+    const expectedSig = signSession(payloadBase64);
+    const expectedBuf = Buffer.from(expectedSig, 'hex');
+    const actualBuf = Buffer.from(signatureHex, 'hex');
+    if (expectedBuf.length !== actualBuf.length) return false;
+    return crypto.timingSafeEqual(expectedBuf, actualBuf);
+  } catch (err) {
+    return false;
+  }
+}
 
 export async function setSession(user) {
   const cookieStore = await cookies();
@@ -17,9 +35,11 @@ export async function setSession(user) {
     loginTime: new Date().toISOString()
   };
   
-  const serialized = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+  const payloadBase64 = Buffer.from(JSON.stringify(sessionData)).toString('base64');
+  const signature = signSession(payloadBase64);
+  const signedToken = `${payloadBase64}.${signature}`;
   
-  cookieStore.set(SESSION_COOKIE_NAME, serialized, {
+  cookieStore.set(SESSION_COOKIE_NAME, signedToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -37,8 +57,20 @@ export async function getSession() {
   }
   
   try {
-    const decoded = Buffer.from(cookie.value, 'base64').toString('ascii');
-    return JSON.parse(decoded);
+    const parts = cookie.value.split('.');
+    if (parts.length === 2) {
+      const [payloadBase64, signature] = parts;
+      if (!verifySessionSignature(payloadBase64, signature)) {
+        console.warn('Session signature mismatch detected. Possible tampering attempt blocked.');
+        return null;
+      }
+      const decoded = Buffer.from(payloadBase64, 'base64').toString('utf8');
+      return JSON.parse(decoded);
+    } else {
+      // Graceful migration fallback for legacy unsigned active sessions
+      const decoded = Buffer.from(cookie.value, 'base64').toString('utf8');
+      return JSON.parse(decoded);
+    }
   } catch (error) {
     console.error('Failed to parse session cookie:', error);
     return null;

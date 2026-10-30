@@ -47,6 +47,14 @@ export async function DELETE(request, context) {
   const typeId = parseInt(id);
 
   try {
+    // Foreign key safety pre-check: ensure order type is not used by existing orders
+    const linkedOrders = await query('SELECT id FROM orders WHERE order_type_id = ? LIMIT 1', [typeId]);
+    if (linkedOrders && linkedOrders.length > 0) {
+      return Response.json({
+        error: 'Cannot delete order type: There are existing orders configured with this order type.'
+      }, { status: 400 });
+    }
+
     await query('DELETE FROM order_types WHERE id = ?', [typeId]);
     return Response.json({ success: true, message: 'Order Type deleted successfully' });
   } catch (error) {

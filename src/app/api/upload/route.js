@@ -1,20 +1,39 @@
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-
-function formatKarachiDate() {
-  const options = { timeZone: 'Asia/Karachi', day: '2-digit', month: 'short', year: 'numeric' };
-  const formatter = new Intl.DateTimeFormat('en-GB', options);
-  return formatter.format(new Date()).replace(/ /g, '-');
-}
+import { getSession } from '@/lib/auth';
+import { formatKarachiShortDate } from '@/lib/dateUtils';
 
 function sanitizeName(str) {
   if (!str) return '';
   return str.replace(/[\\/:*?"<>|#]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// Allowed file extensions and MIME types whitelist
+const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.pdf']);
+const ALLOWED_MIME_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/webp',
+  'application/pdf'
+]);
+
+// Maximum file size: 15MB
+const MAX_FILE_SIZE_BYTES = 15 * 1024 * 1024;
+
 export async function POST(request) {
   try {
+    // 1. Authentication Check
+    const session = await getSession();
+    if (!session) {
+      return Response.json({ error: 'Unauthorized. Please login to upload files.' }, { status: 401 });
+    }
+
+    if (session.must_change_password) {
+      return Response.json({ error: 'Password change required before uploading documents.' }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file');
     let docType = (formData.get('docType') || formData.get('category') || 'PO').trim();
@@ -22,11 +41,33 @@ export async function POST(request) {
     let clientName = (formData.get('clientName') || '').toString().trim();
     let customDate = (formData.get('date') || '').toString().trim();
 
-    if (!file) {
+    if (!file || typeof file === 'string') {
       return Response.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Normalize docType into 3 subfolders: PO, DC, Invoice
+    // 2. File Size Validation
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return Response.json({ error: 'File size exceeds 15MB limit.' }, { status: 400 });
+    }
+
+    // 3. File Extension & Type Whitelist
+    let ext = path.extname(file.name || '').toLowerCase();
+    if (!ext) {
+      if (file.type === 'image/webp') ext = '.webp';
+      else if (file.type === 'image/png') ext = '.png';
+      else if (file.type === 'image/jpeg') ext = '.jpg';
+      else if (file.type === 'application/pdf') ext = '.pdf';
+    }
+
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return Response.json({ error: `File type "${ext}" not supported. Allowed formats: PNG, JPG, WEBP, PDF.` }, { status: 400 });
+    }
+
+    if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) {
+      return Response.json({ error: 'Invalid file format detected.' }, { status: 400 });
+    }
+
+    // 4. Normalize docType into 3 subfolders: PO, DC, Invoice
     let subFolder = 'PO';
     if (docType.toUpperCase() === 'DC' || docType.toLowerCase().includes('challan')) {
       subFolder = 'DC';
@@ -47,17 +88,7 @@ export async function POST(request) {
       formattedOrder = `Order ${cleanOrderNo}`;
     }
 
-    const dateStr = customDate ? sanitizeName(customDate) : formatKarachiDate();
-
-    // Determine file extension
-    let ext = path.extname(file.name);
-    if (!ext) {
-      if (file.type === 'image/webp') ext = '.webp';
-      else if (file.type === 'image/png') ext = '.png';
-      else if (file.type === 'image/jpeg') ext = '.jpg';
-      else if (file.type === 'application/pdf') ext = '.pdf';
-      else ext = '.bin';
-    }
+    const dateStr = customDate ? sanitizeName(customDate) : formatKarachiShortDate();
 
     // Target directory: public/uploads/[PO|DC|Invoice]
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', subFolder);

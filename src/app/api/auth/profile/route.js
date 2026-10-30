@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { getSession, setSession } from '@/lib/auth';
+import { hashPassword } from '@/lib/passwordUtils';
 
 export async function PUT(request) {
   const session = await getSession();
@@ -23,9 +24,10 @@ export async function PUT(request) {
     }
 
     if (password && password.trim() !== '') {
+      const hashedPassword = hashPassword(password.trim());
       await query(
         'UPDATE users SET name = ?, email = ?, password = ?, designation = ? WHERE id = ?',
-        [name, email, password, session.designation, userId]
+        [name, email, hashedPassword, session.designation, userId]
       );
     } else {
       await query(

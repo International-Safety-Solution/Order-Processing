@@ -151,7 +151,7 @@ export default function AdminSidebar({ user }) {
   const showClients = isAdmin || !!user?.permissions?.client_management?.view;
 
   const SidebarContent = () => (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Brand Header */}
       <div className="h-16 flex items-center px-6 border-b border-zinc-200 gap-3 shrink-0">
         {settings.app_logo ? (
@@ -363,13 +363,13 @@ export default function AdminSidebar({ user }) {
 
 
       {/* Profile / Account Footer */}
-      <div className="p-4 border-t border-zinc-200 bg-white shrink-0">
-        <div className="mb-3 px-2 space-y-2">
+      <div className="p-3 border-t border-zinc-200 bg-white shrink-0">
+        <div className="mb-2 px-1 space-y-1.5">
           <div className="truncate">
             <p className="text-xs font-bold text-zinc-950 truncate">{user?.name || 'Administrator'}</p>
             <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             <button
               onClick={() => { setProfileModalOpen(true); setProfileError(''); setProfileSuccess(''); }}
               className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-lg text-[10px] font-bold border border-zinc-200 cursor-pointer transition-colors"
@@ -388,7 +388,7 @@ export default function AdminSidebar({ user }) {
         </div>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-red-650 hover:text-red-750 bg-red-50/50 hover:bg-red-50 border border-red-100 hover:border-red-200 transition-all cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-red-650 hover:text-red-750 bg-red-50/50 hover:bg-red-50 border border-red-100 hover:border-red-200 transition-all cursor-pointer"
         >
           <LogOut className="h-4 w-4" />
           <span>Sign Out</span>
@@ -421,7 +421,7 @@ export default function AdminSidebar({ user }) {
       </div>
 
       {/* ── Desktop Sidebar ── */}
-      <aside className="hidden lg:flex w-64 bg-white text-zinc-800 flex-col shrink-0 border-r border-zinc-200 min-h-screen">
+      <aside className="hidden lg:flex w-64 bg-white text-zinc-800 flex-col shrink-0 border-r border-zinc-200 h-screen sticky top-0 overflow-hidden">
         <SidebarContent />
       </aside>
 
@@ -434,7 +434,7 @@ export default function AdminSidebar({ user }) {
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" onClick={() => setMobileOpen(false)} />
           {/* Drawer */}
-          <div className="relative w-72 max-w-[85vw] bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden">
+          <div className="relative w-72 max-w-[85vw] bg-white h-screen shadow-2xl flex flex-col z-10 overflow-hidden">
             <SidebarContent />
           </div>
         </div>

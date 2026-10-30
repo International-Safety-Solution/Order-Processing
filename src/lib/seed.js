@@ -75,6 +75,7 @@ export async function seedDatabase() {
         stage1_reupload_times TEXT NULL,
         stage2_reupload_times TEXT NULL,
         stage3_reupload_times TEXT NULL,
+        stage1_upload_history TEXT NULL,
         created_by_id INT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -200,6 +201,12 @@ export async function seedDatabase() {
     try {
       await query('ALTER TABLE orders ADD COLUMN stage3_reupload_times TEXT NULL');
       console.log('Added "stage3_reupload_times" column to orders.');
+    } catch (e) {
+      // Column already exists, ignore
+    }
+    try {
+      await query('ALTER TABLE orders ADD COLUMN stage1_upload_history TEXT NULL');
+      console.log('Added "stage1_upload_history" column to orders.');
     } catch (e) {
       // Column already exists, ignore
     }

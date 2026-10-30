@@ -92,18 +92,27 @@ export default function ClientManagement() {
       );
     })
     .sort((a, b) => {
+      let comparison = 0;
       if (sortField === 'sr') {
-        const idA = Number(a.id) || 0;
-        const idB = Number(b.id) || 0;
-        return sortDirection === 'asc' ? idA - idB : idB - idA;
+        comparison = (Number(a.id) || 0) - (Number(b.id) || 0);
       } else if (sortField === 'name') {
         const nameA = (a.name || '').toLowerCase();
         const nameB = (b.name || '').toLowerCase();
-        if (nameA < nameB) return sortDirection === 'asc' ? -1 : 1;
-        if (nameA > nameB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
+        comparison = nameA.localeCompare(nameB);
+      } else if (sortField === 'phone') {
+        const phoneA = (a.phone || '').toLowerCase();
+        const phoneB = (b.phone || '').toLowerCase();
+        comparison = phoneA.localeCompare(phoneB);
+      } else if (sortField === 'email') {
+        const emailA = (a.email || '').toLowerCase();
+        const emailB = (b.email || '').toLowerCase();
+        comparison = emailA.localeCompare(emailB);
+      } else if (sortField === 'address') {
+        const addrA = (a.address || '').toLowerCase();
+        const addrB = (b.address || '').toLowerCase();
+        comparison = addrA.localeCompare(addrB);
       }
-      return 0;
+      return sortDirection === 'asc' ? comparison : -comparison;
     });
 
   const openAddModal = () => {
@@ -294,51 +303,108 @@ export default function ClientManagement() {
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-zinc-50/90 border-b border-zinc-200 text-xs font-semibold text-zinc-600 uppercase tracking-wider">
-                  {/* Sr No Sortable Header */}
+                  {/* Sr No */}
                   <th 
                     onClick={() => handleSort('sr')} 
-                    title="Click to sort by Sr. No"
-                    className="py-3 px-4 w-28 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                    title={sortField === 'sr' ? (sortDirection === 'asc' ? 'Sr. No: Low to High' : 'Sr. No: High to Low') : 'Sort by Sr. No'}
+                    className="whitespace-nowrap py-3 px-4 w-28 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
                   >
                     <div className="flex items-center gap-1.5 font-bold text-zinc-700">
                       <span>Sr. No</span>
                       {sortField === 'sr' ? (
                         sortDirection === 'asc' ? (
-                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange" />
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
                         ) : (
-                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
                         )
                       ) : (
-                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400 group-hover:text-zinc-600" />
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
                       )}
                     </div>
                   </th>
 
-                  {/* Client Name Sortable Header (A-Z) */}
+                  {/* Client Name */}
                   <th 
                     onClick={() => handleSort('name')} 
-                    title="Click to sort by Client Name (A-Z)"
-                    className="py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                    title={sortField === 'name' ? (sortDirection === 'asc' ? 'Client: A to Z' : 'Client: Z to A') : 'Sort by Client Name'}
+                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
                   >
                     <div className="flex items-center gap-1.5 font-bold text-zinc-700">
                       <span>Client Name</span>
                       {sortField === 'name' ? (
                         sortDirection === 'asc' ? (
-                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange" />
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
                         ) : (
-                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange" />
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
                         )
                       ) : (
-                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400 group-hover:text-zinc-600" />
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
                       )}
                     </div>
                   </th>
 
-                  <th className="py-3 px-4">Contact Phone</th>
-                  <th className="py-3 px-4">Email Address</th>
-                  <th className="py-3 px-4">Delivery / Billing Address</th>
+                  {/* Contact Phone */}
+                  <th 
+                    onClick={() => handleSort('phone')} 
+                    title={sortField === 'phone' ? (sortDirection === 'asc' ? 'Phone: Low to High' : 'Phone: High to Low') : 'Sort by Contact Phone'}
+                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-zinc-700">
+                      <span>Contact Phone</span>
+                      {sortField === 'phone' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Email Address */}
+                  <th 
+                    onClick={() => handleSort('email')} 
+                    title={sortField === 'email' ? (sortDirection === 'asc' ? 'Email: A to Z' : 'Email: Z to A') : 'Sort by Email Address'}
+                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-zinc-700">
+                      <span>Email Address</span>
+                      {sortField === 'email' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Delivery / Billing Address */}
+                  <th 
+                    onClick={() => handleSort('address')} 
+                    title={sortField === 'address' ? (sortDirection === 'asc' ? 'Address: A to Z' : 'Address: Z to A') : 'Sort by Address'}
+                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                  >
+                    <div className="flex items-center gap-1.5 font-bold text-zinc-700">
+                      <span>Delivery / Billing Address</span>
+                      {sortField === 'address' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                      )}
+                    </div>
+                  </th>
+
                   {(canEdit || canDelete) && (
-                    <th className="py-3 px-4 text-right w-24">Actions</th>
+                    <th className="whitespace-nowrap py-3 px-4 text-right w-24">Actions</th>
                   )}
                 </tr>
               </thead>
@@ -431,16 +497,17 @@ export default function ClientManagement() {
               
               <div className="space-y-4">
                 <div className="flex justify-between items-start">
-                  <div className="h-10 w-10 rounded-lg bg-zinc-950 flex items-center justify-center text-white">
-                    <UserSquare2 className="h-5 w-5" />
+                  <div className="h-10 w-10 rounded-xl bg-zinc-950 flex items-center justify-center text-white shadow-xs">
+                    <UserSquare2 className="h-5 w-5 text-white" />
                   </div>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase bg-zinc-50 border border-zinc-150 px-2 py-0.5 rounded">
-                    ID: #{client.id}
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    Active Partner
                   </span>
                 </div>
 
                 <div>
-                  <h3 className="text-base font-bold text-zinc-950 truncate">{client.name}</h3>
+                  <h3 className="text-base font-bold text-zinc-950 truncate tracking-tight">{client.name}</h3>
                 </div>
 
                 <div className="space-y-2 text-xs text-zinc-600 border-t border-zinc-100 pt-3">
@@ -601,8 +668,8 @@ export default function ClientManagement() {
           setClientToDelete(null);
         }}
         onConfirm={handleConfirmDelete}
-        title="Delete Corporate Client"
-        message={clientToDelete ? `Are you sure you want to delete client "${clientToDelete.name}"? \n\nWarning: This will permanently delete this client profile and also cascade delete ALL orders associated with them.` : ''}
+        title={clientToDelete ? `Delete Client "${clientToDelete.name}"?` : "Delete Corporate Client"}
+        message={clientToDelete ? `Are you sure you want to delete corporate client "${clientToDelete.name}"? If active orders are linked to this client, deletion will be safely prevented.` : ''}
         confirmText="Confirm & Delete"
         loading={deleteLoading}
       />

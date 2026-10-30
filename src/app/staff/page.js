@@ -11,6 +11,7 @@ import {
   Truck,
   Upload,
   Lock,
+  Save,
   AlertCircle,
   Download,
   CheckSquare,
@@ -35,10 +36,21 @@ const convertToWebP = (file) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
+        const MAX_DIMENSION = 2048;
+        let { width, height } = img;
+        if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIMENSION) / width);
+            width = MAX_DIMENSION;
+          } else {
+            width = Math.round((width * MAX_DIMENSION) / height);
+            height = MAX_DIMENSION;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+        ctx.drawImage(img, 0, 0, width, height);
         canvas.toBlob((blob) => {
           if (blob) {
             const cleanName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -70,7 +82,7 @@ function getKarachiDateObj(dateInput = new Date()) {
     second: '2-digit',
     hour12: false
   });
-  
+
   const parts = formatter.formatToParts(dateInput);
   const partMap = {};
   parts.forEach(p => { partMap[p.type] = p.value; });
@@ -178,11 +190,11 @@ export default function StaffDashboard() {
     );
 
     if (filteredFiles.length < files.length) {
-      if (isInvoice) {
-        alert('Only JPG, JPEG, PNG, WEBP images and PDF files are supported.');
-      } else {
-        alert('Only JPG, JPEG, PNG, and WEBP image formats are supported.');
-      }
+      setErrorMessage(
+        isInvoice
+          ? 'Only JPG, JPEG, PNG, WEBP images and PDF documents are supported.'
+          : 'Only JPG, JPEG, PNG, and WEBP image formats are supported.'
+      );
     }
 
     if (filteredFiles.length === 0) return;
@@ -253,13 +265,16 @@ export default function StaffDashboard() {
       return;
     }
 
+    const currentOrder = orders.find(o => o.id === orderId);
     let receivedBy = '';
     if (actionType === 'COMPLETE_TASK_1') {
-      receivedBy = receivedByNames[orderId] || '';
-      if (!receivedBy.trim()) {
+      receivedBy = (receivedByNames[orderId] !== undefined ? receivedByNames[orderId] : (currentOrder?.received_by || '')).trim();
+      if (!receivedBy) {
         setErrorMessage('Please enter the name of the person who received the delivery (Received By).');
         return;
       }
+    } else if (actionType === 'SAVE_DRAFT_DC') {
+      receivedBy = (receivedByNames[orderId] !== undefined ? receivedByNames[orderId] : (currentOrder?.received_by || '')).trim();
     }
 
     setUploadingOrder(orderId);
@@ -267,7 +282,6 @@ export default function StaffDashboard() {
     setSuccessMessage('');
 
     try {
-      const currentOrder = orders.find(o => o.id === orderId);
       const isInvoice = actionType === 'COMPLETE_TASK_2' || actionType === 'REUPLOAD_TASK_2';
       const docType = isInvoice ? 'Invoice' : 'DC';
       const clientName = currentOrder ? currentOrder.client_name : '';
@@ -308,10 +322,14 @@ export default function StaffDashboard() {
 
       const updateData = await updateRes.json();
       if (!updateRes.ok) {
-        throw new Error(updateData.error || 'Failed to complete order stage');
+        throw new Error(updateData.error || 'Failed to process order action');
       }
 
-      setSuccessMessage('Task completed successfully!');
+      if (actionType === 'SAVE_DRAFT_DC') {
+        setSuccessMessage('Delivery Challan saved as draft. You can upload remaining DCs later.');
+      } else {
+        setSuccessMessage('Task completed successfully!');
+      }
       setEditingOrders(prev => ({ ...prev, [orderId]: false }));
 
       // Clean preview
@@ -321,6 +339,49 @@ export default function StaffDashboard() {
         return updated;
       });
 
+      fetchSessionAndOrders();
+    } catch (err) {
+      setErrorMessage(err.message);
+    } finally {
+      setUploadingOrder(null);
+    }
+  };
+
+  const handleCompleteWithSavedDc = async (orderId) => {
+    const currentOrder = orders.find(o => o.id === orderId);
+    const receivedBy = (receivedByNames[orderId] !== undefined ? receivedByNames[orderId] : (currentOrder?.received_by || '')).trim();
+    if (!receivedBy) {
+      setErrorMessage('Please enter the name of the person who received the delivery (Received By).');
+      return;
+    }
+
+    setUploadingOrder(orderId);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'COMPLETE_TASK_1',
+          value: '',
+          receivedBy: receivedBy
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to complete Stage 1');
+      }
+
+      setSuccessMessage('Stage 1 completed successfully! Re-upload buffer is now active.');
+      setEditingOrders(prev => ({ ...prev, [orderId]: false }));
+      setSelectedFiles(prev => {
+        const updated = { ...prev };
+        delete updated[orderId];
+        return updated;
+      });
       fetchSessionAndOrders();
     } catch (err) {
       setErrorMessage(err.message);
@@ -401,36 +462,35 @@ export default function StaffDashboard() {
     const isOrderStage1Active = order.status === 'PENDING_TASK';
     const isOrderStage2Active = order.status === 'PENDING_INVOICE';
     const isOrderStage3Active = order.status === 'PENDING_COURIER';
-    
+
     const bufferMs = reuploadBufferTime * 60 * 1000;
     const currentKarachiTime = getKarachiDateObj(now);
-    
+
     // Check if edit limit is reached for each stage
     const stage1EditCount = parseInt(order.stage1_edit_count || 0);
     const isTask1EditLimitReached = maxReuploadCount >= 0 && stage1EditCount >= maxReuploadCount;
     const elapsed1 = order.stage1_completed_at ? (currentKarachiTime - parsePKTDate(order.stage1_completed_at)) : null;
     const isBuffer1Active = elapsed1 !== null && elapsed1 < bufferMs && !isTask1EditLimitReached;
-    
+
     const stage2EditCount = parseInt(order.stage2_edit_count || 0);
     const isTask2EditLimitReached = maxReuploadCount >= 0 && stage2EditCount >= maxReuploadCount;
     const elapsed2 = order.stage2_completed_at ? (currentKarachiTime - parsePKTDate(order.stage2_completed_at)) : null;
     const isBuffer2Active = elapsed2 !== null && elapsed2 < bufferMs && !isTask2EditLimitReached;
-    
+
     const stage3EditCount = parseInt(order.stage3_edit_count || 0);
     const isTask3EditLimitReached = maxReuploadCount >= 0 && stage3EditCount >= maxReuploadCount;
     const elapsed3 = order.stage3_completed_at ? (currentKarachiTime - parsePKTDate(order.stage3_completed_at)) : null;
     const isBuffer3Active = elapsed3 !== null && elapsed3 < bufferMs && !isTask3EditLimitReached;
 
-    if (isTask1) {
-      return isOrderStage1Active || (isOrderStage2Active && isBuffer1Active);
-    }
-    if (isTask2) {
-      return (isOrderStage2Active && !isBuffer1Active) || (isOrderStage3Active && isBuffer2Active);
-    }
-    if (isTask3) {
-      return (isOrderStage3Active && !isBuffer2Active) || (order.status === 'COMPLETED' && isBuffer3Active);
-    }
-    return false;
+    const canAct1 = isTask1 && Number(order.assigned_staff_1_id) === Number(user?.id);
+    const canAct2 = isTask2 && Number(order.assigned_staff_2_id) === Number(user?.id);
+    const canAct3 = isTask3 && Number(order.assigned_staff_3_id) === Number(user?.id);
+
+    const active1 = canAct1 && (isOrderStage1Active || (isOrderStage2Active && isBuffer1Active));
+    const active2 = canAct2 && ((isOrderStage2Active && !isBuffer1Active) || (isOrderStage3Active && isBuffer2Active));
+    const active3 = canAct3 && ((isOrderStage3Active && !isBuffer2Active) || (order.status === 'COMPLETED' && isBuffer3Active));
+
+    return active1 || active2 || active3;
   };
 
   // Filtered lists depending on selected tab
@@ -445,10 +505,10 @@ export default function StaffDashboard() {
   // Staff can track order progress at every stage; the action forms are separately gated
   // by canActPhase1/2/3 which only opens when it is their specific turn.
   const isOrderRelevantForStaff = (o) => {
-    if (isTask1) return o.assigned_staff_1_id === user?.id;
-    if (isTask2) return o.assigned_staff_2_id === user?.id;
-    if (isTask3) return o.assigned_staff_3_id === user?.id;
-    return false;
+    const isS1 = isTask1 && Number(o.assigned_staff_1_id) === Number(user?.id);
+    const isS2 = isTask2 && Number(o.assigned_staff_2_id) === Number(user?.id);
+    const isS3 = isTask3 && Number(o.assigned_staff_3_id) === Number(user?.id);
+    return isS1 || isS2 || isS3;
   };
 
   if (currentTab === 'dashboard') {
@@ -475,10 +535,10 @@ export default function StaffDashboard() {
             {currentTab === 'pending'
               ? 'Your Pending Actions Queue'
               : currentTab === 'in-progress'
-              ? 'Your In Progress Orders'
-              : currentTab === 'completed'
-              ? 'Your Completed Task History'
-              : 'Your Assigned Tasks Queue'}
+                ? 'Your In Progress Orders'
+                : currentTab === 'completed'
+                  ? 'Your Completed Task History'
+                  : 'Your Assigned Tasks Queue'}
           </h1>
           <p className="text-xs text-zinc-550 mt-1">Review orders and perform workflow actions assigned to your designation.</p>
         </div>
@@ -513,8 +573,8 @@ export default function StaffDashboard() {
             {currentTab === 'pending'
               ? 'Pending Assignments (Action Required)'
               : currentTab === 'in-progress'
-              ? 'In Progress (Waiting for Other Phases)'
-              : 'Active Assignments'}
+                ? 'In Progress (Waiting for Other Phases)'
+                : 'Active Assignments'}
           </h2>
 
           {displayedActiveOrders.length === 0 ? (
@@ -524,8 +584,8 @@ export default function StaffDashboard() {
                 {currentTab === 'pending'
                   ? 'No pending actions! You are all caught up.'
                   : currentTab === 'in-progress'
-                  ? 'No orders are currently in progress.'
-                  : 'All caught up! No active orders assigned.'}
+                    ? 'No orders are currently in progress.'
+                    : 'All caught up! No active orders assigned.'}
               </p>
               <p className="text-xs text-zinc-400 mt-0.5">Admin will assign tasks as new client orders arrive.</p>
             </div>
@@ -564,13 +624,14 @@ export default function StaffDashboard() {
                 // Determine effective phase based on ORDER ASSIGNMENT
                 // Even if user has multiple role permissions, they can only act
                 // on the specific phase they are assigned to for THIS order.
-                const canActPhase1 = isTask1 && (order.assigned_staff_1_id === user?.id);
-                const canActPhase2 = isTask2 && (order.assigned_staff_2_id === user?.id);
-                const canActPhase3 = isTask3 && (order.assigned_staff_3_id === user?.id);
+                const canActPhase1 = isTask1 && (Number(order.assigned_staff_1_id) === Number(user?.id));
+                const canActPhase2 = isTask2 && (Number(order.assigned_staff_2_id) === Number(user?.id));
+                const canActPhase3 = isTask3 && (Number(order.assigned_staff_3_id) === Number(user?.id));
 
+                const isTask1Pending = canActPhase1 && order.status === 'PENDING_TASK';
                 const isTask1Editing = canActPhase1 && isBuffer1Active && !!order.dc_image_path && !!editingOrders[order.id];
-                const isTask1FormVisible = canActPhase1 && (!order.dc_image_path || isTask1Editing);
-                const isTask1ShowReuploadButton = canActPhase1 && isBuffer1Active && !!order.dc_image_path && !editingOrders[order.id] && !isTask1EditLimitReached;
+                const isTask1FormVisible = isTask1Pending || isTask1Editing;
+                const isTask1ShowReuploadButton = canActPhase1 && isBuffer1Active && order.status === 'PENDING_INVOICE' && !editingOrders[order.id] && !isTask1EditLimitReached;
 
                 const isTask2Editing = canActPhase2 && isBuffer2Active && !!order.invoice_image_path && !!editingOrders[order.id];
                 const isTask2FormVisible = canActPhase2 && (
@@ -593,12 +654,12 @@ export default function StaffDashboard() {
                 // Phase 3: Courier dispatch needed (PENDING_COURIER after buffer2, or COMPLETED during buffer3)
                 const activePhase =
                   (order.status === 'PENDING_TASK') || (order.status === 'PENDING_INVOICE' && isBuffer1Active) ? 1 :
-                  (order.status === 'PENDING_INVOICE' && !isBuffer1Active) || (order.status === 'PENDING_COURIER' && isBuffer2Active) ? 2 :
-                  (order.status === 'PENDING_COURIER' && !isBuffer2Active) || (order.status === 'COMPLETED' && isBuffer3Active) ? 3 :
-                  'completed';
+                    (order.status === 'PENDING_INVOICE' && !isBuffer1Active) || (order.status === 'PENDING_COURIER' && isBuffer2Active) ? 2 :
+                      (order.status === 'PENDING_COURIER' && !isBuffer2Active) || (order.status === 'COMPLETED' && isBuffer3Active) ? 3 :
+                        'completed';
 
                 // Card is highlighted in orange when initial action is needed or they are actively editing
-                const isCurrentPhaseActive = 
+                const isCurrentPhaseActive =
                   (canActPhase1 && activePhase === 1) || isTask1Editing ||
                   (canActPhase2 && activePhase === 2) || isTask2Editing ||
                   (canActPhase3 && activePhase === 3) || isTask3Editing;
@@ -681,17 +742,17 @@ export default function StaffDashboard() {
                       {/* Phase Progress Steps */}
                       <div className="relative flex items-center mt-4 gap-0">
                         {[
-                          { label: 'Production', done: !!order.dc_image_path, num: '1' },
-                          { label: 'Accounts', done: !!order.invoice_image_path, num: '2' },
-                          { label: 'Dispatch', done: !!order.tracking_id, num: '3' },
+                          { label: 'Production', done: !!order.stage1_completed_at, num: '1' },
+                          { label: 'Accounts', done: !!order.stage2_completed_at, num: '2' },
+                          { label: 'Dispatch', done: !!order.stage3_completed_at, num: '3' },
                         ].map((step, i, arr) => {
-                          const isActive = !step.done && (i === 0 ? !arr[0].done : arr[i-1].done);
+                          const isActive = !step.done && (i === 0 ? !arr[0].done : arr[i - 1].done);
                           return (
                             <div key={i} className="flex-1 flex flex-col items-center relative">
                               {/* Connector line */}
                               {i > 0 && (
                                 <div className={`absolute left-0 right-1/2 top-2.5 h-px -translate-y-1/2
-                                  ${arr[i-1].done ? 'bg-white/70' : 'bg-white/25'}`} />
+                                  ${arr[i - 1].done ? 'bg-white/70' : 'bg-white/25'}`} />
                               )}
                               {i < arr.length - 1 && (
                                 <div className={`absolute left-1/2 right-0 top-2.5 h-px -translate-y-1/2
@@ -702,8 +763,8 @@ export default function StaffDashboard() {
                                 ${step.done
                                   ? 'bg-white border-white text-orange-500'
                                   : isActive
-                                  ? 'bg-white/20 border-white text-white animate-pulse'
-                                  : 'bg-transparent border-white/30 text-white/40'
+                                    ? 'bg-white/20 border-white text-white animate-pulse'
+                                    : 'bg-transparent border-white/30 text-white/40'
                                 }`}>
                                 {step.done ? '✓' : step.num}
                               </div>
@@ -781,9 +842,9 @@ export default function StaffDashboard() {
                               <span>Download PO {order.po_file_path.split(',').length > 1 ? `#${idx + 1}` : ''}</span>
                             </a>
                           ))}
-                          <OrderDocumentDropdown 
-                            order={order} 
-                            onPreviewImage={(url) => setPreviewImageUrl(url)} 
+                          <OrderDocumentDropdown
+                            order={order}
+                            onPreviewImage={(url) => setPreviewImageUrl(url)}
                           />
                         </div>
                       </div>
@@ -799,10 +860,10 @@ export default function StaffDashboard() {
                           <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-500">
                             {canActPhase1 ? 'Phase 1 · Delivery Challan Upload'
                               : canActPhase2 ? 'Phase 2 · Invoice Upload'
-                              : canActPhase3 ? 'Phase 3 · Courier Dispatch'
-                              : activePhase === 1 ? 'Phase 1 · Delivery Challan Upload'
-                              : activePhase === 2 ? 'Phase 2 · Invoice Upload'
-                              : 'Phase 3 · Courier Dispatch'}
+                                : canActPhase3 ? 'Phase 3 · Courier Dispatch'
+                                  : activePhase === 1 ? 'Phase 1 · Delivery Challan Upload'
+                                    : activePhase === 2 ? 'Phase 2 · Invoice Upload'
+                                      : 'Phase 3 · Courier Dispatch'}
                           </p>
                         </div>
                       </div>
@@ -821,28 +882,78 @@ export default function StaffDashboard() {
                         {canActPhase1 && activePhase === 1 && (
                           <div className="space-y-2">
                             {isTask1FormVisible ? (
-                              <div className="space-y-2">
+                              <div className="space-y-2.5">
+                                {/* Previously Saved Delivery Challans (Locked) */}
+                                {(() => {
+                                  const existingDcList = order.dc_image_path ? order.dc_image_path.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                  if (existingDcList.length === 0 || isTask1Editing) return null;
+                                  return (
+                                    <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                                          <Lock className="h-3.5 w-3.5 text-amber-600" />
+                                          <span>Previously Saved Delivery Challans ({existingDcList.length})</span>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                                          Locked (Cannot be deleted)
+                                        </span>
+                                      </div>
+                                      <div className="flex flex-wrap gap-2 pt-0.5">
+                                        {existingDcList.map((path, idx) => (
+                                          <div
+                                            key={idx}
+                                            className="relative rounded-lg overflow-hidden border border-amber-200 bg-white shadow-2xs group/dc cursor-pointer"
+                                            onClick={() => setPreviewImageUrl(getSafeFileUrl(path))}
+                                          >
+                                            <img
+                                              src={getSafeFileUrl(path)}
+                                              alt={`DC ${idx + 1}`}
+                                              className="w-14 h-14 object-cover hover:scale-105 transition-transform"
+                                            />
+                                            <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5">
+                                              DC #{idx + 1}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <p className="text-[10px] text-amber-800/80 leading-tight">
+                                        ℹ️ Uploaded in a previous partial session. You can attach additional DC pictures below, then save another draft or submit to complete.
+                                      </p>
+                                    </div>
+                                  );
+                                })()}
+
                                 <input
                                   type="text"
                                   required
-                                  value={receivedByNames[order.id] || ''}
+                                  value={receivedByNames[order.id] !== undefined ? receivedByNames[order.id] : (order.received_by || '')}
                                   onChange={(e) => handleReceivedByNameChange(order.id, e.target.value)}
                                   placeholder="👤 Received by (required)..."
                                   className="w-full px-3 py-2.5 border border-zinc-200 bg-white text-zinc-900 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-orange-400 placeholder:text-zinc-400"
                                 />
+
                                 <label className="flex items-center gap-3 px-3 py-3 border-2 border-dashed border-zinc-200 hover:border-orange-400 bg-white hover:bg-orange-50/30 rounded-xl cursor-pointer transition-all group/upload">
                                   <div className="h-9 w-9 rounded-xl bg-orange-100 group-hover/upload:bg-orange-500 flex items-center justify-center shrink-0 transition-all">
                                     <Upload className="h-4 w-4 text-orange-500 group-hover/upload:text-white transition-colors" />
                                   </div>
                                   <div className="flex-1">
                                     <span className="text-xs font-semibold text-zinc-800 block">
-                                      {isTask1Editing ? 'Update / Re-upload DC Pictures' : 'Upload DC Pictures'} <span className="text-red-500">*</span>
+                                      {isTask1Editing
+                                        ? 'Update / Re-upload DC Pictures'
+                                        : (order.dc_image_path ? 'Attach Additional / Remaining DC Pictures' : 'Upload DC Pictures')}{' '}
+                                      <span className="text-red-500">*</span>
                                     </span>
                                     <span className="text-[9px] text-zinc-400">JPG · PNG · WEBP · Must include client signature</span>
                                   </div>
                                   <span className="text-zinc-300 group-hover/upload:text-orange-400 transition-colors text-lg">→</span>
-                                  <input type="file" multiple accept="image/png, image/jpeg, image/jpg, image/webp" className="hidden"
-                                    disabled={uploadingOrder === order.id} onChange={(e) => handleFilesSelect(e, order.id)} />
+                                  <input
+                                    type="file"
+                                    multiple
+                                    accept="image/png, image/jpeg, image/jpg, image/webp"
+                                    className="hidden"
+                                    disabled={uploadingOrder === order.id}
+                                    onChange={(e) => handleFilesSelect(e, order.id)}
+                                  />
                                 </label>
 
                                 {chosenFiles.length > 0 && (
@@ -850,16 +961,67 @@ export default function StaffDashboard() {
                                     <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-zinc-200 rounded-xl">
                                       {chosenFiles.map((fileObj, idx) => (
                                         <div key={idx} className="relative w-14 h-14 rounded-lg overflow-hidden bg-zinc-100 shrink-0 ring-1 ring-zinc-200">
-                                          <img src={fileObj.previewUrl} alt="" className="h-full w-full object-cover cursor-pointer" 
-                                            onClick={() => setPreviewImageUrl(fileObj.previewUrl)} />
-                                          <button type="button" onClick={() => handleRemoveFile(order.id, idx)}
-                                            className="absolute top-0.5 right-0.5 h-4 w-4 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-[8px] font-bold cursor-pointer shadow">✕</button>
+                                          <img
+                                            src={fileObj.previewUrl}
+                                            alt=""
+                                            className="h-full w-full object-cover cursor-pointer"
+                                            onClick={() => setPreviewImageUrl(fileObj.previewUrl)}
+                                          />
+                                          <button
+                                            type="button"
+                                            onClick={() => handleRemoveFile(order.id, idx)}
+                                            className="absolute top-0.5 right-0.5 h-4 w-4 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center text-[8px] font-bold cursor-pointer shadow"
+                                          >
+                                            ✕
+                                          </button>
                                         </div>
                                       ))}
                                     </div>
-                                    <button onClick={() => handleFilesSubmit(order.id, 'COMPLETE_TASK_1')} disabled={uploadingOrder === order.id}
-                                      className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-sm shadow-orange-300/40 cursor-pointer active:scale-95">
-                                      {uploadingOrder === order.id ? '⏳ Uploading…' : `✓ Submit & Complete · ${chosenFiles.length} file${chosenFiles.length > 1 ? 's' : ''}`}
+
+                                    {isTask1Editing ? (
+                                      <button
+                                        onClick={() => handleFilesSubmit(order.id, 'COMPLETE_TASK_1')}
+                                        disabled={uploadingOrder === order.id}
+                                        className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white font-bold rounded-xl text-xs transition-all shadow-sm shadow-orange-300/40 cursor-pointer active:scale-95"
+                                      >
+                                        {uploadingOrder === order.id ? '⏳ Uploading…' : `✓ Submit Re-upload · ${chosenFiles.length} file${chosenFiles.length > 1 ? 's' : ''}`}
+                                      </button>
+                                    ) : (
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        <button
+                                          type="button"
+                                          onClick={() => handleFilesSubmit(order.id, 'SAVE_DRAFT_DC')}
+                                          disabled={uploadingOrder === order.id}
+                                          className="py-2.5 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 font-bold rounded-xl text-xs transition-all border border-zinc-300/80 cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                        >
+                                          <Save className="h-3.5 w-3.5 text-zinc-600" />
+                                          <span>{uploadingOrder === order.id ? 'Saving…' : '💾 Save DC (Draft)'}</span>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleFilesSubmit(order.id, 'COMPLETE_TASK_1')}
+                                          disabled={uploadingOrder === order.id}
+                                          className="py-2.5 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl text-xs transition-all shadow-sm shadow-orange-300/40 cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                        >
+                                          <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                                          <span>{uploadingOrder === order.id ? 'Submitting…' : '✓ Submit & Complete Stage 1'}</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* If no new files chosen but previous DCs exist and NOT editing */}
+                                {chosenFiles.length === 0 && !isTask1Editing && !!order.dc_image_path && order.status === 'PENDING_TASK' && (
+                                  <div className="pt-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCompleteWithSavedDc(order.id)}
+                                      disabled={uploadingOrder === order.id}
+                                      className="w-full py-2.5 px-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold rounded-xl text-xs transition-all shadow-sm shadow-orange-300/40 cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+                                    >
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                                      <span>{uploadingOrder === order.id ? 'Submitting…' : `✓ Submit & Complete Stage 1 (With Saved DCs)`}</span>
                                     </button>
                                   </div>
                                 )}
@@ -932,7 +1094,7 @@ export default function StaffDashboard() {
                                         <Download className="h-3 w-3" /> DC {idx + 1}
                                       </a>
                                     ))}
-                                    {order.received_by && <span className="text-[9px] text-zinc-500 w-full mt-0.5">Rcvd. by: <b className="text-zinc-700">{order.received_by}</b></span>}
+                                    {order.received_by && <span className="text-[9px] text-zinc-500 w-full mt-0.5">Recieved by: <b className="text-zinc-700">{order.received_by}</b></span>}
                                   </div>
                                 )}
                                 <label className="flex items-center gap-3 px-3 py-3 border-2 border-dashed border-zinc-200 hover:border-orange-400 bg-white hover:bg-orange-50/30 rounded-xl cursor-pointer transition-all group/upload">
@@ -1015,8 +1177,8 @@ export default function StaffDashboard() {
                               {activePhase === 1
                                 ? 'Waiting for Phase 1 (DC upload) to complete.'
                                 : activePhase === 3
-                                ? 'Your phase is done — Phase 3 in progress.'
-                                : 'Order fully completed.'}
+                                  ? 'Your phase is done — Phase 3 in progress.'
+                                  : 'Order fully completed.'}
                             </span>
                           </div>
                         )}
@@ -1100,8 +1262,8 @@ export default function StaffDashboard() {
                               {activePhase === 1
                                 ? 'Waiting for Phase 1 & 2 to complete.'
                                 : activePhase === 2
-                                ? 'Waiting for Phase 2 (Invoice) to complete.'
-                                : 'Order fully completed.'}
+                                  ? 'Waiting for Phase 2 (Invoice) to complete.'
+                                  : 'Order fully completed.'}
                             </span>
                           </div>
                         )}
@@ -1129,7 +1291,7 @@ export default function StaffDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {displayedCompletedOrders.map((order) => (
                 <div key={order.id} className="bg-white border border-zinc-200 p-4 sm:p-5 rounded-2xl flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-                  
+
                   {/* Card Header */}
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-start gap-2">
@@ -1171,7 +1333,7 @@ export default function StaffDashboard() {
 
                   {/* Workflow Deliverables Badges */}
                   <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-zinc-100">
-                    
+
                     {/* PO File Deliverable */}
                     {order.po_no && (
                       <div className="flex items-center gap-1.5 bg-zinc-50 border border-zinc-200 rounded-lg p-1.5 text-[10px] font-bold text-zinc-700">
@@ -1277,23 +1439,23 @@ export default function StaffDashboard() {
 
       {/* Image Preview Modal */}
       {previewImageUrl && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 transition-all duration-300 animate-fade-in"
           onClick={() => setPreviewImageUrl(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center">
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); setPreviewImageUrl(null); }}
               className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center text-lg font-bold shadow-lg transition-colors cursor-pointer"
               title="Close Preview"
             >
               ✕
             </button>
-            <img 
-              src={previewImageUrl} 
-              alt="Preview" 
-              onClick={(e) => e.stopPropagation()} 
-              className="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl border border-white/10 animate-scale-up" 
+            <img
+              src={previewImageUrl}
+              alt="Preview"
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl border border-white/10 animate-scale-up"
             />
           </div>
         </div>

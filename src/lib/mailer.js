@@ -113,10 +113,22 @@ export async function sendSystemEmail(templateKey, templateParams) {
         recipientEmail: recipient,
         subject,
         body
-      }).then(() => {
+      }).then(async () => {
         console.log(`Mailer: Successfully sent to ${recipient}`);
-      }).catch(err => {
+        try {
+          await query(
+            'INSERT INTO email_logs (recipient, subject, template_key, status) VALUES (?, ?, ?, ?)',
+            [recipient, subject, templateKey, 'SENT']
+          );
+        } catch (e) {}
+      }).catch(async (err) => {
         console.error(`Mailer: Failed to send email to ${recipient}:`, err.message);
+        try {
+          await query(
+            'INSERT INTO email_logs (recipient, subject, template_key, status, error_message) VALUES (?, ?, ?, ?, ?)',
+            [recipient, subject, templateKey, 'FAILED', err.message]
+          );
+        } catch (e) {}
       });
     }
   } catch (err) {

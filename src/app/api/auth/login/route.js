@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { setSession } from '@/lib/auth';
+import { verifyPassword, hashPassword, needsRehash } from '@/lib/passwordUtils';
 
 export async function POST(request) {
   try {
@@ -32,12 +33,24 @@ export async function POST(request) {
 
     const user = users[0];
 
-    // Password comparison
-    if (user.password !== cleanPassword) {
+    // Password comparison using secure scrypt verification
+    const passwordMatches = verifyPassword(cleanPassword, user.password);
+
+    if (!passwordMatches) {
       return Response.json(
         { error: 'Invalid email or password' },
         { status: 401 }
       );
+    }
+
+    // Auto-upgrade plain text password to secure scrypt hash in database
+    if (needsRehash(user.password)) {
+      try {
+        const secureHash = hashPassword(cleanPassword);
+        await query('UPDATE users SET password = ? WHERE id = ?', [secureHash, user.id]);
+      } catch (err) {
+        console.error('Failed to auto-upgrade user password hash:', err);
+      }
     }
 
     // Set session

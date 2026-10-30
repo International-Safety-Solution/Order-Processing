@@ -40,9 +40,14 @@ export async function GET() {
 
     if (process.env.DB_HOST) {
       const sql = `
-        SELECT o.*, c.name as client_name, c.phone as client_phone, c.address as client_address, uc.name as created_by_name
+        SELECT 
+          o.*, 
+          COALESCE(c.name, 'Deleted Client') as client_name, 
+          COALESCE(c.phone, '') as client_phone, 
+          COALESCE(c.address, '') as client_address, 
+          COALESCE(uc.name, 'System') as created_by_name
         FROM orders o
-        JOIN clients c ON o.client_id = c.id
+        LEFT JOIN clients c ON o.client_id = c.id
         LEFT JOIN users uc ON o.created_by_id = uc.id
         WHERE (${conditions.join(' OR ')})
         ORDER BY o.id DESC

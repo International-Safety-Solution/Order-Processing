@@ -15,7 +15,12 @@ export async function GET() {
       'SELECT smtp_host, smtp_port, smtp_user, smtp_pass, smtp_secure, smtp_sender_name, smtp_sender_email FROM settings WHERE id = 1'
     );
     if (settings && settings.length > 0) {
-      return Response.json(settings[0]);
+      const data = { ...settings[0] };
+      data.has_password = !!data.smtp_pass;
+      if (data.smtp_pass) {
+        data.smtp_pass = '••••••••••••';
+      }
+      return Response.json(data);
     }
     return Response.json({
       smtp_host: '',
@@ -45,6 +50,14 @@ export async function PUT(request) {
       return Response.json({ error: 'Host, port, and sender email are required' }, { status: 400 });
     }
 
+    let finalPass = smtp_pass;
+    if (finalPass === '••••••••••••') {
+      const current = await query('SELECT smtp_pass FROM settings WHERE id = 1');
+      if (current && current.length > 0) {
+        finalPass = current[0].smtp_pass;
+      }
+    }
+
     await query(
       `UPDATE settings 
        SET smtp_host = ?, smtp_port = ?, smtp_user = ?, smtp_pass = ?, smtp_secure = ?, smtp_sender_name = ?, smtp_sender_email = ? 
@@ -53,7 +66,7 @@ export async function PUT(request) {
         smtp_host,
         parseInt(smtp_port) || 25,
         smtp_user || null,
-        smtp_pass || null,
+        finalPass || null,
         smtp_secure || 'none',
         smtp_sender_name || null,
         smtp_sender_email
@@ -80,11 +93,19 @@ export async function POST(request) {
       return Response.json({ error: 'Missing connection settings or recipient email address' }, { status: 400 });
     }
 
+    let effectivePass = smtp_pass;
+    if (effectivePass === '••••••••••••' || !effectivePass) {
+      const current = await query('SELECT smtp_pass FROM settings WHERE id = 1');
+      if (current && current.length > 0) {
+        effectivePass = current[0].smtp_pass;
+      }
+    }
+
     const testConfig = {
       host: smtp_host,
       port: smtp_port,
       user: smtp_user,
-      pass: smtp_pass,
+      pass: effectivePass,
       secure: smtp_secure,
       sender_name: smtp_sender_name,
       sender_email: smtp_sender_email

@@ -225,7 +225,7 @@ export default function PermissionsScopeManagement() {
                   <div className="space-y-3 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-extrabold text-zinc-950 text-base">{scope.name}</span>
-                      <span className="text-[10px] font-mono bg-zinc-150 text-zinc-650 px-2 py-0.5 rounded-md">ID: {scope.id}</span>
+                      <span className="text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/60 px-2 py-0.5 rounded-full">Permission Scope</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">

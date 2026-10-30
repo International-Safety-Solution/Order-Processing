@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { getSession, setSession } from '@/lib/auth';
+import { verifyPassword, hashPassword } from '@/lib/passwordUtils';
 
 export async function POST(request) {
   const session = await getSession();
@@ -29,14 +30,18 @@ export async function POST(request) {
     }
 
     const user = users[0];
-    if (user.password !== currentPassword.trim()) {
+    const passwordValid = verifyPassword(currentPassword.trim(), user.password);
+
+    if (!passwordValid) {
       return Response.json({ error: 'Current default password is incorrect' }, { status: 400 });
     }
+
+    const hashedPassword = hashPassword(newPassword.trim());
 
     // Update password and set must_change_password = 0
     await query(
       'UPDATE users SET password = ?, must_change_password = 0 WHERE id = ?',
-      [newPassword.trim(), session.id]
+      [hashedPassword, session.id]
     );
 
     // Refresh session cookie with must_change_password = false
@@ -50,7 +55,7 @@ export async function POST(request) {
       message: 'Password updated successfully! Account activated.'
     });
   } catch (error) {
-    console.error('Password change error:', error);
+    console.error('Change password error:', error);
     return Response.json({ error: 'Failed to update password' }, { status: 500 });
   }
 }

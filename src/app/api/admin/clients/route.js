@@ -1,6 +1,8 @@
 import { query } from '@/lib/db';
 import { getSession, getUserPermissions } from '@/lib/auth';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function GET() {
   const session = await getSession();
   const permissions = await getUserPermissions(session);
@@ -37,6 +39,10 @@ export async function POST(request) {
     const cleanEmail = email ? email.trim() : '';
     const cleanPhone = phone ? phone.trim() : '';
     const cleanAddress = address ? address.trim() : '';
+
+    if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
+      return Response.json({ error: 'Please enter a valid email address (e.g. client@company.com)' }, { status: 400 });
+    }
 
     const result = await query(
       'INSERT INTO clients (name, email, phone, address) VALUES (?, ?, ?, ?)',

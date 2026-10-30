@@ -21,7 +21,8 @@ export function proxy(request) {
   let user = null;
   if (sessionCookie && sessionCookie.value) {
     try {
-      const decoded = Buffer.from(sessionCookie.value, 'base64').toString('ascii');
+      const raw = sessionCookie.value.includes('.') ? sessionCookie.value.split('.')[0] : sessionCookie.value;
+      const decoded = Buffer.from(raw, 'base64').toString('utf8');
       user = JSON.parse(decoded);
     } catch (e) {
       console.error('Proxy cookie parse failed:', e);

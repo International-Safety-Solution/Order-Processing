@@ -40,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# uploads
+/public/uploads/DC/*
+!/public/uploads/DC/.gitkeep
+/public/uploads/Invoice/*
+!/public/uploads/Invoice/.gitkeep
+/public/uploads/PO/*
+!/public/uploads/PO/.gitkeep
+

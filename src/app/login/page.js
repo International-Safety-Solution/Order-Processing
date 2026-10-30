@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Mail, AlertCircle, Building2 } from 'lucide-react';
+import { KeyRound, Mail, AlertCircle, Building2, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [settings, setSettings] = useState({ app_name: 'Order Management', app_logo: null });
@@ -29,7 +30,7 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setLoading(true);
     setError('');
 
@@ -53,23 +54,16 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Success -> Redirect to respective dashboard
+      // Hard redirect to guarantee layout session update
       if (data.user.role === 'ADMIN') {
-        router.push('/admin');
+        window.location.href = '/admin';
       } else {
-        router.push('/staff');
+        window.location.href = '/staff';
       }
-      router.refresh();
     } catch (err) {
       setError(err.message);
-    } finally {
       setLoading(false);
     }
-  };
-
-  const autofill = (userEmail, userPass) => {
-    setEmail(userEmail);
-    setPassword(userPass);
   };
 
   return (
@@ -110,7 +104,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+        <form className="mt-8 space-y-6" onSubmit={handleLogin} method="POST" action="#">
           <div className="space-y-4">
             <div>
               <label htmlFor="email-address" className="block text-sm font-medium text-zinc-700 mb-1">
@@ -124,6 +118,7 @@ export default function LoginPage() {
                   id="email-address"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -144,13 +139,26 @@ export default function LoginPage() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-zinc-300 bg-white text-zinc-950 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange sm:text-sm placeholder-zinc-400"
+                  className="block w-full pl-10 pr-10 py-2.5 border border-zinc-300 bg-white text-zinc-950 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange sm:text-sm placeholder-zinc-400"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -159,12 +167,20 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-brand-orange hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-orange disabled:opacity-50 transition-colors shadow-sm cursor-pointer"
+              className="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-brand-orange hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-orange disabled:opacity-50 transition-colors shadow-sm cursor-pointer font-sans"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Signing in...
+                </span>
+              ) : (
+                'Sign In'
+              )}
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );

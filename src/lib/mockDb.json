@@ -7,6 +7,46 @@
       "name": "System Administrator",
       "role": "ADMIN",
       "designation": null
+    },
+    {
+      "id": 2,
+      "email": "task@company.com",
+      "password": "password123",
+      "name": "Zahid Khan (Task)",
+      "role": "STAFF",
+      "designation": "TASK_COMPLETION",
+      "permissions": null,
+      "permission_scopes": null
+    },
+    {
+      "id": 3,
+      "email": "admin@company.com",
+      "password": "password123",
+      "name": "Admin User",
+      "role": "ADMIN",
+      "designation": null,
+      "permissions": null,
+      "permission_scopes": null
+    },
+    {
+      "id": 4,
+      "email": "invoice@company.com",
+      "password": "password123",
+      "name": "Maria Ali (Accounts)",
+      "role": "STAFF",
+      "designation": "INVOICE_CREATION",
+      "permissions": null,
+      "permission_scopes": null
+    },
+    {
+      "id": 5,
+      "email": "courier@company.com",
+      "password": "password123",
+      "name": "Sajid Ahmed (Logistics)",
+      "role": "STAFF",
+      "designation": "INVOICE_COURIER",
+      "permissions": null,
+      "permission_scopes": null
     }
   ],
   "clients": [

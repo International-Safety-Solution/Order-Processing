@@ -42,7 +42,7 @@ export default async function StaffLayout({ children }) {
   };
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 text-zinc-950">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 text-zinc-950">
       {/* First Time Password Change Modal */}
       <FirstTimePasswordModal mustChangePassword={mustChangePassword} />
 
@@ -50,7 +50,7 @@ export default async function StaffLayout({ children }) {
       <StaffSidebar session={sessionWithPermissions} handleLogoutAction={handleLogout} />
 
       {/* Main Content Workspace */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-y-auto pt-14 lg:pt-0">
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto pt-14 lg:pt-0">
         <header className="hidden lg:flex h-16 border-b border-zinc-200 bg-white items-center justify-between px-8 shadow-sm shrink-0">
           <div className="flex items-center gap-3">
             <span className="h-2 w-2 rounded-full bg-brand-orange animate-pulse" />

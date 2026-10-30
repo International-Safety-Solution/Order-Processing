@@ -1,74 +1,15 @@
 import { query } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-
-function getKarachiDate() {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Karachi',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(new Date());
-  const partMap = {};
-  parts.forEach(p => { partMap[p.type] = p.value; });
-  return `${partMap.year}-${partMap.month}-${partMap.day} ${partMap.hour}:${partMap.minute}:${partMap.second}`;
-}
-
-function getKarachiDateObj(dateInput = new Date()) {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Karachi',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(dateInput);
-  const partMap = {};
-  parts.forEach(p => { partMap[p.type] = p.value; });
-  const str = `${partMap.year}-${partMap.month}-${partMap.day}T${partMap.hour}:${partMap.minute}:${partMap.second}`;
-  return new Date(str);
-}
-
-function parsePKTDate(dateInput) {
-  if (!dateInput) return new Date();
-  if (dateInput instanceof Date) {
-    return getKarachiDateObj(dateInput);
-  }
-  const formatted = dateInput.includes('T') ? dateInput : dateInput.replace(' ', 'T');
-  return new Date(formatted);
-}
-
-function formatKarachiDate(dateObj) {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Karachi',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-  
-  const parts = formatter.formatToParts(dateObj);
-  const partMap = {};
-  parts.forEach(p => { partMap[p.type] = p.value; });
-  return `${partMap.year}-${partMap.month}-${partMap.day} ${partMap.hour}:${partMap.minute}:${partMap.second}`;
-}
+import { getKarachiDate, getKarachiDateObj, parsePKTDate, formatKarachiDate } from '@/lib/dateUtils';
 
 export async function POST(request, context) {
   const session = await getSession();
   if (!session || session.role !== 'STAFF') {
     return Response.json({ error: 'Unauthorized' }, { status: 403 });
+  }
+
+  if (session.must_change_password) {
+    return Response.json({ error: 'You must change your default password before performing any workflow actions.' }, { status: 403 });
   }
 
   const { id } = await context.params;
@@ -96,27 +37,101 @@ export async function POST(request, context) {
       ? parseInt(settingsRows[0].max_reupload_count)
       : 3;
 
-    // Stage 1: TASK_COMPLETION completes and uploads DC
-    if (action === 'COMPLETE_TASK_1') {
-      if (designation !== 'TASK_COMPLETION' || order.assigned_staff_1_id !== staffId) {
+    // Stage 1 DRAFT: Save DC without completing stage or starting countdown timer
+    if (action === 'SAVE_DRAFT_DC') {
+      if (designation !== 'TASK_COMPLETION' || Number(order.assigned_staff_1_id) !== Number(staffId)) {
         return Response.json({ error: 'Permission denied for this task stage' }, { status: 403 });
       }
-      if (!value) {
+      if (order.status !== 'PENDING_TASK') {
+        return Response.json({ error: 'Only pending Stage 1 orders can be saved as draft' }, { status: 400 });
+      }
+      if (!value || !value.trim()) {
         return Response.json({ error: 'Delivery Challan image/file is required' }, { status: 400 });
       }
-      if (!receivedBy || !receivedBy.trim()) {
-        return Response.json({ error: 'Received By name is required' }, { status: 400 });
+
+      // Merge new files with existing saved DC files
+      const existingDcPaths = order.dc_image_path ? order.dc_image_path.split(',').map(s => s.trim()).filter(Boolean) : [];
+      const newDcPaths = value.split(',').map(s => s.trim()).filter(Boolean);
+      const combinedDcPaths = [...existingDcPaths, ...newDcPaths].join(',');
+
+      const finalReceivedBy = (receivedBy && receivedBy.trim()) ? receivedBy.trim() : (order.received_by || null);
+
+      // Parse and append to upload history
+      let uploadHistory = [];
+      if (order.stage1_upload_history) {
+        try {
+          const parsed = JSON.parse(order.stage1_upload_history);
+          if (Array.isArray(parsed)) uploadHistory = parsed;
+        } catch (e) {
+          uploadHistory = [];
+        }
+      }
+      uploadHistory.push({
+        batch: uploadHistory.length + 1,
+        timestamp: currentPKTDate,
+        files: newDcPaths,
+        received_by: finalReceivedBy,
+        type: 'DRAFT'
+      });
+
+      await query(
+        'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_upload_history = ? WHERE id = ?',
+        [combinedDcPaths, finalReceivedBy, JSON.stringify(uploadHistory), orderId]
+      );
+
+      return Response.json({
+        success: true,
+        message: 'Delivery Challan saved as draft. You can upload remaining DCs later.',
+        dc_image_path: combinedDcPaths
+      });
+    }
+
+    // Stage 1: TASK_COMPLETION completes and uploads DC (or completes with previously saved DCs)
+    if (action === 'COMPLETE_TASK_1') {
+      if (designation !== 'TASK_COMPLETION' || Number(order.assigned_staff_1_id) !== Number(staffId)) {
+        return Response.json({ error: 'Permission denied for this task stage' }, { status: 403 });
       }
 
       if (order.status === 'PENDING_TASK') {
-        // Initial submission
+        const existingDcPaths = order.dc_image_path ? order.dc_image_path.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const newDcPaths = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const allDcPaths = [...existingDcPaths, ...newDcPaths];
+
+        if (allDcPaths.length === 0) {
+          return Response.json({ error: 'Delivery Challan image/file is required' }, { status: 400 });
+        }
+
+        const finalReceivedBy = (receivedBy && receivedBy.trim()) ? receivedBy.trim() : (order.received_by || '');
+        if (!finalReceivedBy) {
+          return Response.json({ error: 'Received By name is required' }, { status: 400 });
+        }
+
+        // Update upload history
+        let uploadHistory = [];
+        if (order.stage1_upload_history) {
+          try {
+            const parsed = JSON.parse(order.stage1_upload_history);
+            if (Array.isArray(parsed)) uploadHistory = parsed;
+          } catch (e) {
+            uploadHistory = [];
+          }
+        }
+        uploadHistory.push({
+          batch: uploadHistory.length + 1,
+          timestamp: currentPKTDate,
+          files: newDcPaths.length > 0 ? newDcPaths : (existingDcPaths.length > 0 && uploadHistory.length === 0 ? existingDcPaths : []),
+          received_by: finalReceivedBy,
+          type: 'FINAL'
+        });
+
+        const combinedDcPaths = allDcPaths.join(',');
         const bufferOffset = maxReuploadCount === 0 ? 0 : bufferMs;
         const stage2OpenDateObj = new Date(parsePKTDate(currentPKTDate).getTime() + bufferOffset);
         const stage2OpenedAt = formatKarachiDate(stage2OpenDateObj);
 
         await query(
-          'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_completed_at = ?, stage2_opened_at = ?, status = ? WHERE id = ?',
-          [value, receivedBy.trim(), currentPKTDate, stage2OpenedAt, 'PENDING_INVOICE', orderId]
+          'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_upload_history = ?, stage1_completed_at = ?, stage2_opened_at = ?, status = ? WHERE id = ?',
+          [combinedDcPaths, finalReceivedBy, JSON.stringify(uploadHistory), currentPKTDate, stage2OpenedAt, 'PENDING_INVOICE', orderId]
         );
 
         // Fetch client and order type details for notifications
@@ -140,7 +155,7 @@ export async function POST(request, context) {
           qty: order.qty || '0',
           po_no: order.po_no || 'N/A',
           deadline_date: order.deadline_date || 'N/A',
-          receiver_name: receivedBy.trim(),
+          receiver_name: finalReceivedBy,
           assigned_staff_1_id: order.assigned_staff_1_id,
           assigned_staff_2_id: order.assigned_staff_2_id,
           assigned_staff_3_id: order.assigned_staff_3_id
@@ -148,7 +163,7 @@ export async function POST(request, context) {
           console.error('Failed to trigger stage1_completed notification:', err);
         });
 
-        return Response.json({ success: true, message: 'Delivery Challan uploaded, task completed.' });
+        return Response.json({ success: true, message: 'Delivery Challan uploaded, stage 1 completed.' });
       } else if (order.status === 'PENDING_INVOICE') {
         // Re-upload within buffer window check
         const elapsed = getKarachiDateObj(new Date()) - parsePKTDate(order.stage1_completed_at);
@@ -164,16 +179,37 @@ export async function POST(request, context) {
         const reuploads = JSON.parse(order.stage1_reupload_times || '[]');
         reuploads.push(currentPKTDate);
         
+        const finalReceivedBy = (receivedBy && receivedBy.trim()) ? receivedBy.trim() : (order.received_by || '');
+
+        // Update upload history with reupload batch
+        let uploadHistory = [];
+        if (order.stage1_upload_history) {
+          try {
+            const parsed = JSON.parse(order.stage1_upload_history);
+            if (Array.isArray(parsed)) uploadHistory = parsed;
+          } catch (e) {
+            uploadHistory = [];
+          }
+        }
+        const reuploadFiles = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        uploadHistory.push({
+          batch: uploadHistory.length + 1,
+          timestamp: currentPKTDate,
+          files: reuploadFiles,
+          received_by: finalReceivedBy,
+          type: 'REUPLOAD'
+        });
+
         const reachedLimit = (currentEditCount + 1) >= maxReuploadCount;
         if (reachedLimit) {
           await query(
-            'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_edit_count = ?, stage1_reupload_times = ?, stage2_opened_at = ? WHERE id = ?',
-            [value, receivedBy.trim(), currentEditCount + 1, JSON.stringify(reuploads), currentPKTDate, orderId]
+            'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_edit_count = ?, stage1_reupload_times = ?, stage1_upload_history = ?, stage2_opened_at = ? WHERE id = ?',
+            [value, finalReceivedBy, currentEditCount + 1, JSON.stringify(reuploads), JSON.stringify(uploadHistory), currentPKTDate, orderId]
           );
         } else {
           await query(
-            'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_edit_count = ?, stage1_reupload_times = ? WHERE id = ?',
-            [value, receivedBy.trim(), currentEditCount + 1, JSON.stringify(reuploads), orderId]
+            'UPDATE orders SET dc_image_path = ?, received_by = ?, stage1_edit_count = ?, stage1_reupload_times = ?, stage1_upload_history = ? WHERE id = ?',
+            [value, finalReceivedBy, currentEditCount + 1, JSON.stringify(reuploads), JSON.stringify(uploadHistory), orderId]
           );
         }
         return Response.json({ success: true, message: 'Delivery Challan re-uploaded successfully.', editLimitReached: reachedLimit });

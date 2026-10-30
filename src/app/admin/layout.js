@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }) {
   const isStaff = userWithPermissions?.role === 'STAFF';
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 text-zinc-950">
+    <div className="flex h-screen overflow-hidden bg-zinc-50 text-zinc-950">
       {/* Dynamic Sidebar Navigation */}
       {isStaff ? (
         <StaffSidebar session={userWithPermissions} handleLogoutAction={handleLogout} />
@@ -26,7 +26,7 @@ export default async function AdminLayout({ children }) {
       )}
 
       {/* Main Content Workspace */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-y-auto pt-14 lg:pt-0">
+      <main className="flex-1 flex flex-col h-screen overflow-y-auto pt-14 lg:pt-0">
         {/* Desktop-only status header */}
         <header className="hidden lg:flex h-16 border-b border-zinc-200 bg-white items-center justify-between px-8 shadow-sm shrink-0">
           <div className="flex items-center gap-3">

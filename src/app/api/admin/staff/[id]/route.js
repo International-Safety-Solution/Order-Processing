@@ -1,5 +1,8 @@
 import { query } from '@/lib/db';
 import { getSession, setSession } from '@/lib/auth';
+import { hashPassword } from '@/lib/passwordUtils';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function PUT(request, context) {
   const session = await getSession();
@@ -17,6 +20,11 @@ export async function PUT(request, context) {
       return Response.json({ error: 'Name and email are required' }, { status: 400 });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(cleanEmail)) {
+      return Response.json({ error: 'Please enter a valid email address (e.g. user@company.com)' }, { status: 400 });
+    }
+
     const userRole = role === 'ADMIN' ? 'ADMIN' : 'STAFF';
     let userDesignation = designation;
 
@@ -30,7 +38,6 @@ export async function PUT(request, context) {
     }
 
     // Check if email belongs to someone else
-    const cleanEmail = email.trim().toLowerCase();
     const existing = await query('SELECT id FROM users WHERE email = ? AND id != ?', [cleanEmail, staffId]);
     if (existing && existing.length > 0) {
       return Response.json({ error: 'Another user already has this email' }, { status: 400 });
@@ -39,9 +46,10 @@ export async function PUT(request, context) {
     if (password && password.trim() !== '') {
       // Update with new password and force password change on next login for staff
       const mustChange = userRole === 'STAFF' ? 1 : 0;
+      const hashedPassword = hashPassword(password.trim());
       await query(
         'UPDATE users SET name = ?, email = ?, password = ?, role = ?, designation = ?, permission_scopes = ?, must_change_password = ? WHERE id = ?',
-        [name, email, password, userRole, userDesignation, permissionScopes || null, mustChange, staffId]
+        [name, email, hashedPassword, userRole, userDesignation, permissionScopes || null, mustChange, staffId]
       );
     } else {
       // Update without changing password
@@ -63,10 +71,13 @@ export async function PUT(request, context) {
       });
     }
 
-    return Response.json({ success: true, message: 'User account updated successfully' });
+    return Response.json({
+      success: true,
+      message: 'Account updated successfully'
+    });
   } catch (error) {
-    console.error('Update staff API error:', error);
-    return Response.json({ error: 'Failed to update staff member' }, { status: 500 });
+    console.error('Update staff error:', error);
+    return Response.json({ error: 'Failed to update account' }, { status: 500 });
   }
 }
 
@@ -79,33 +90,29 @@ export async function DELETE(request, context) {
   const { id } = await context.params;
   const staffId = parseInt(id);
 
+  // Prevent deleting oneself
   if (session.id === staffId) {
-    return Response.json({ error: 'You cannot delete your own active administrator account' }, { status: 400 });
+    return Response.json({ error: 'You cannot delete your own account' }, { status: 400 });
   }
 
   try {
-    // 1. Allow NULL for assigned staff columns in orders if MySQL
-    try {
-      await query('ALTER TABLE orders MODIFY COLUMN assigned_staff_1_id INT NULL');
-      await query('ALTER TABLE orders MODIFY COLUMN assigned_staff_2_id INT NULL');
-      await query('ALTER TABLE orders MODIFY COLUMN assigned_staff_3_id INT NULL');
-    } catch (e) {}
+    // Foreign key safety pre-check: ensure user is not referenced in orders
+    const assignedOrders = await query(
+      'SELECT id FROM orders WHERE assigned_staff_1_id = ? OR assigned_staff_2_id = ? OR assigned_staff_3_id = ? OR created_by_id = ? LIMIT 1',
+      [staffId, staffId, staffId, staffId]
+    );
 
-    // 2. Unassign staff from any active orders so foreign keys/references don't block deletion
-    try {
-      await query('UPDATE orders SET assigned_staff_1_id = NULL WHERE assigned_staff_1_id = ?', [staffId]);
-      await query('UPDATE orders SET assigned_staff_2_id = NULL WHERE assigned_staff_2_id = ?', [staffId]);
-      await query('UPDATE orders SET assigned_staff_3_id = NULL WHERE assigned_staff_3_id = ?', [staffId]);
-      await query('UPDATE orders SET created_by_id = NULL WHERE created_by_id = ?', [staffId]);
-    } catch (e) {
-      console.warn('Failed to unassign orders during staff delete:', e);
+    if (assignedOrders && assignedOrders.length > 0) {
+      return Response.json({
+        error: 'Cannot delete staff member: This account is assigned to or created orders. Please reassign those orders before deleting.'
+      }, { status: 400 });
     }
 
-    // 3. Delete staff member
+    // Delete user
     await query('DELETE FROM users WHERE id = ?', [staffId]);
-    return Response.json({ success: true, message: 'Staff member deleted successfully' });
+    return Response.json({ success: true, message: 'Account deleted successfully' });
   } catch (error) {
-    console.error('Delete staff API error:', error);
-    return Response.json({ error: error.message || 'Failed to delete staff member' }, { status: 500 });
+    console.error('Delete staff error:', error);
+    return Response.json({ error: 'Failed to delete account' }, { status: 500 });
   }
 }

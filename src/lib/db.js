@@ -14,6 +14,41 @@ const initialMockData = {
       name: 'System Administrator',
       role: 'ADMIN',
       designation: null
+    },
+    {
+      id: 2,
+      email: 'admin@company.com',
+      password: 'password123',
+      name: 'Admin User',
+      role: 'ADMIN',
+      designation: null
+    },
+    {
+      id: 3,
+      email: 'task@company.com',
+      password: 'password123',
+      name: 'Zahid Khan (Task)',
+      role: 'STAFF',
+      designation: 'TASK_COMPLETION',
+      must_change_password: 0
+    },
+    {
+      id: 4,
+      email: 'invoice@company.com',
+      password: 'password123',
+      name: 'Maria Ali (Accounts)',
+      role: 'STAFF',
+      designation: 'INVOICE_CREATION',
+      must_change_password: 0
+    },
+    {
+      id: 5,
+      email: 'courier@company.com',
+      password: 'password123',
+      name: 'Sajid Ahmed (Logistics)',
+      role: 'STAFF',
+      designation: 'INVOICE_COURIER',
+      must_change_password: 0
     }
   ],
   clients: [],
@@ -273,6 +308,7 @@ async function ensureDatabaseAndPool() {
           stage1_reupload_times TEXT NULL,
           stage2_reupload_times TEXT NULL,
           stage3_reupload_times TEXT NULL,
+          stage1_upload_history TEXT NULL,
           created_by_id INT NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -289,6 +325,36 @@ async function ensureDatabaseAndPool() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
 
+      // Auto-create email_logs table for enterprise audit trail
+      await pool.execute(`
+        CREATE TABLE IF NOT EXISTS email_logs (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          recipient VARCHAR(255) NOT NULL,
+          subject VARCHAR(255) NOT NULL,
+          template_key VARCHAR(100) NULL,
+          status VARCHAR(50) NOT NULL DEFAULT 'SENT',
+          error_message TEXT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+      `);
+
+      // Performance Optimization Indexes on orders table
+      const orderIndexes = [
+        'CREATE INDEX idx_orders_client_id ON orders(client_id)',
+        'CREATE INDEX idx_orders_status ON orders(status)',
+        'CREATE INDEX idx_orders_staff_1 ON orders(assigned_staff_1_id)',
+        'CREATE INDEX idx_orders_staff_2 ON orders(assigned_staff_2_id)',
+        'CREATE INDEX idx_orders_staff_3 ON orders(assigned_staff_3_id)',
+        'CREATE INDEX idx_orders_created_at ON orders(created_at)'
+      ];
+      for (const idxQuery of orderIndexes) {
+        try {
+          await pool.execute(idxQuery);
+        } catch (e) {
+          // Index already exists, safe to ignore
+        }
+      }
+
       try {
         await pool.execute('ALTER TABLE permission_scopes ADD COLUMN name VARCHAR(255) NULL');
       } catch (e) {}
@@ -296,15 +362,27 @@ async function ensureDatabaseAndPool() {
         await pool.execute('ALTER TABLE permission_scopes ADD COLUMN permissions LONGTEXT NULL');
       } catch (e) {}
 
-      // Auto-seed default Admin user if users table is empty
-      const [userRows] = await pool.execute('SELECT COUNT(*) as count FROM users');
-      if (userRows[0].count === 0) {
-        await pool.execute(
-          'INSERT IGNORE INTO users (email, password, name, role, designation) VALUES (?, ?, ?, ?, ?)',
-          ['internationalsafetysolution@gmail.com', 'Admin@1236#', 'System Administrator', 'ADMIN', null]
-        );
-        console.log('Default System Administrator account auto-seeded into MySQL users table.');
-      }
+      // Auto-seed default Admin and Staff demo accounts if missing
+      await pool.execute(
+        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
+        ['internationalsafetysolution@gmail.com', 'Admin@1236#', 'System Administrator', 'ADMIN', null]
+      );
+      await pool.execute(
+        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
+        ['admin@company.com', 'password123', 'Admin User', 'ADMIN', null]
+      );
+      await pool.execute(
+        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
+        ['task@company.com', 'password123', 'Zahid Khan (Task)', 'STAFF', 'TASK_COMPLETION']
+      );
+      await pool.execute(
+        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
+        ['invoice@company.com', 'password123', 'Maria Ali (Accounts)', 'STAFF', 'INVOICE_CREATION']
+      );
+      await pool.execute(
+        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
+        ['courier@company.com', 'password123', 'Sajid Ahmed (Logistics)', 'STAFF', 'INVOICE_COURIER']
+      );
 
       console.log('MySQL all tables (users, clients, orders, order_types, permission_scopes) verified/created.');
     } catch (e) {
@@ -567,21 +645,31 @@ function handleMockQuery(sql, params) {
 
   // INSERT INTO orders
   if (sqlNormalized.startsWith('insert into orders')) {
+    const hasExplicitId = sqlNormalized.includes('(id,') || sqlNormalized.includes('(id ,') || params.length === 14;
+    const pOffset = hasExplicitId ? 1 : 0;
+    let orderId = hasExplicitId ? parseInt(params[0]) : null;
+    if (!orderId) {
+      const existingIds = new Set((db.orders || []).map(o => o.id));
+      let nextId = 1;
+      while (existingIds.has(nextId)) nextId++;
+      orderId = nextId;
+    }
+
     const newOrder = {
-      id: db.orders.length ? Math.max(...db.orders.map(o => o.id)) + 1 : 1,
-      client_id: parseInt(params[0]),
-      order_type_id: params[1] ? parseInt(params[1]) : null,
-      details: params[2],
-      qty: parseInt(params[3] || '0'),
-      deadline_date: params[4],
-      status: params[5], // e.g. PENDING_TASK
-      assigned_staff_1_id: parseInt(params[6]),
-      assigned_staff_2_id: parseInt(params[7]),
-      assigned_staff_3_id: parseInt(params[8]),
-      po_no: params[9] || null,
-      po_file_path: params[10] || null,
-      created_by_id: params[11] ? parseInt(params[11]) : 1,
-      stage1_opened_at: params[12] || null,
+      id: orderId,
+      client_id: parseInt(params[0 + pOffset]),
+      order_type_id: params[1 + pOffset] ? parseInt(params[1 + pOffset]) : null,
+      details: params[2 + pOffset],
+      qty: parseInt(params[3 + pOffset] || '0'),
+      deadline_date: params[4 + pOffset],
+      status: params[5 + pOffset], // e.g. PENDING_TASK
+      assigned_staff_1_id: parseInt(params[6 + pOffset]),
+      assigned_staff_2_id: parseInt(params[7 + pOffset]),
+      assigned_staff_3_id: parseInt(params[8 + pOffset]),
+      po_no: params[9 + pOffset] || null,
+      po_file_path: params[10 + pOffset] || null,
+      created_by_id: params[11 + pOffset] ? parseInt(params[11 + pOffset]) : 1,
+      stage1_opened_at: params[12 + pOffset] || null,
       dc_image_path: null,
       received_by: null,
       invoice_image_path: null,

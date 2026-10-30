@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Users, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, RefreshCw, Pencil, Trash2, ShieldCheck } from 'lucide-react';
+import { Users, UserPlus, Mail, KeyRound, CheckCircle2, AlertCircle, RefreshCw, Pencil, Trash2, ShieldCheck, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 export default function StaffManagement() {
@@ -29,6 +29,19 @@ export default function StaffManagement() {
 
   const [formLoading, setFormLoading] = useState(false);
   const [message, setMessage] = useState({ text: '', type: '' });
+
+  // Table Sorting State (A-Z / Z-A)
+  const [sortField, setSortField] = useState('name');
+  const [sortDirection, setSortDirection] = useState('asc'); // A to Z default
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const fetchStaff = async () => {
     setLoading(true);
@@ -67,12 +80,21 @@ export default function StaffManagement() {
     setEditingId(null);
     setName('');
     setEmail('');
-    setPassword('12345678');
+    setPassword('');
     setRole('STAFF');
     setDesignation('TASK_COMPLETION');
     setSelectedScopes([]);
     setMessage({ text: '', type: '' });
     setShowFormModal(true);
+  };
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+    let pass = '';
+    for (let i = 0; i < 10; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(pass);
   };
 
   const openEditModal = (member) => {
@@ -170,7 +192,8 @@ export default function StaffManagement() {
       setStaffToDelete(null);
       fetchStaff();
     } catch (err) {
-      alert(err.message);
+      setShowDeleteModal(false);
+      setMessage({ text: err.message, type: 'error' });
     } finally {
       setDeleteLoading(false);
     }
@@ -196,6 +219,28 @@ export default function StaffManagement() {
         return <span className="px-2 py-1 bg-zinc-100 border border-zinc-200 text-zinc-500 text-xs font-semibold rounded-md">{member.designation}</span>;
     }
   };
+
+  const sortedStaff = [...staff].sort((a, b) => {
+    let comparison = 0;
+    if (sortField === 'name') {
+      const nameA = (a.name || '').toLowerCase();
+      const nameB = (b.name || '').toLowerCase();
+      comparison = nameA.localeCompare(nameB);
+    } else if (sortField === 'email') {
+      const emailA = (a.email || '').toLowerCase();
+      const emailB = (b.email || '').toLowerCase();
+      comparison = emailA.localeCompare(emailB);
+    } else if (sortField === 'role') {
+      const roleA = (a.role === 'ADMIN' ? 'Admin' : (a.designation || 'Staff')).toLowerCase();
+      const roleB = (b.role === 'ADMIN' ? 'Admin' : (b.designation || 'Staff')).toLowerCase();
+      comparison = roleA.localeCompare(roleB);
+    } else if (sortField === 'scopes') {
+      const scopeA = (a.permission_scopes || '').toLowerCase();
+      const scopeB = (b.permission_scopes || '').toLowerCase();
+      comparison = scopeA.localeCompare(scopeB);
+    }
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
 
   return (
     <div className="space-y-8">
@@ -243,7 +288,7 @@ export default function StaffManagement() {
           <>
             {/* ── MOBILE STAFF CARD LIST ── */}
             <div className="lg:hidden divide-y divide-zinc-100">
-              {staff.map((member) => (
+              {sortedStaff.map((member) => (
                 <div key={member.id} className="p-4 space-y-3">
                   {/* Row 1: Name + ID */}
                   <div className="flex justify-between items-start gap-2">
@@ -251,8 +296,8 @@ export default function StaffManagement() {
                       <p className="font-bold text-sm text-zinc-950 truncate">{member.name}</p>
                       <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{member.email}</p>
                     </div>
-                    <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded shrink-0">
-                      ID: #{member.id}
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${member.role === 'ADMIN' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-zinc-100 text-zinc-650'}`}>
+                      {member.role === 'ADMIN' ? 'Admin' : 'Staff'}
                     </span>
                   </div>
 
@@ -272,8 +317,8 @@ export default function StaffManagement() {
                       const assigned = scopes.filter(s => ids.includes(s.id));
                       if (assigned.length === 0) {
                         return (
-                          <span className="px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-550 text-[9px] font-bold rounded">
-                            Fallback: {member.designation}
+                          <span className="px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-600 text-[10px] font-semibold rounded">
+                            Standard: {member.designation === 'TASK_COMPLETION' ? 'Phase 1' : member.designation === 'INVOICE_CREATION' ? 'Phase 2' : 'Phase 3'}
                           </span>
                         );
                       }
@@ -309,17 +354,93 @@ export default function StaffManagement() {
             {/* ── DESKTOP STAFF TABLE ── */}
             <div className="hidden lg:block overflow-x-auto">
               <table className="min-w-full divide-y divide-zinc-200 text-left text-sm">
-                <thead className="bg-zinc-50 text-zinc-500 uppercase text-[10px] font-bold tracking-wider">
+                <thead className="bg-zinc-50 text-zinc-600 uppercase text-[10px] font-bold tracking-wider border-b border-zinc-200">
                   <tr>
-                    <th className="px-6 py-4">Name</th>
-                    <th className="px-6 py-4">Email</th>
-                    <th className="px-6 py-4">Role & Designation</th>
-                    <th className="px-6 py-4">Permissions Scope</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    {/* Name */}
+                    <th 
+                      onClick={() => handleSort('name')}
+                      className="whitespace-nowrap px-6 py-4 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
+                      title={sortField === 'name' ? (sortDirection === 'asc' ? 'Name: A to Z' : 'Name: Z to A') : 'Sort by Member Name'}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span>Name</span>
+                        {sortField === 'name' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* Email */}
+                    <th 
+                      onClick={() => handleSort('email')}
+                      className="whitespace-nowrap px-6 py-4 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
+                      title={sortField === 'email' ? (sortDirection === 'asc' ? 'Email: A to Z' : 'Email: Z to A') : 'Sort by Email Address'}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span>Email</span>
+                        {sortField === 'email' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* Role & Designation */}
+                    <th 
+                      onClick={() => handleSort('role')}
+                      className="whitespace-nowrap px-6 py-4 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
+                      title={sortField === 'role' ? (sortDirection === 'asc' ? 'Role: A to Z' : 'Role: Z to A') : 'Sort by Role & Phase'}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span>Role & Designation</span>
+                        {sortField === 'role' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* Permissions Scope */}
+                    <th 
+                      onClick={() => handleSort('scopes')}
+                      className="whitespace-nowrap px-6 py-4 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
+                      title={sortField === 'scopes' ? (sortDirection === 'asc' ? 'Scopes: A to Z' : 'Scopes: Z to A') : 'Sort by Permissions Scope'}
+                    >
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <span>Permissions Scope</span>
+                        {sortField === 'scopes' ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          ) : (
+                            <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                        )}
+                      </div>
+                    </th>
+
+                    <th className="whitespace-nowrap px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-150 bg-white">
-                  {staff.map((member) => (
+                  {sortedStaff.map((member) => (
                     <tr key={member.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="whitespace-nowrap px-6 py-4 font-bold text-zinc-900">
                         {member.name}
@@ -340,8 +461,8 @@ export default function StaffManagement() {
                             const assigned = scopes.filter(s => ids.includes(s.id));
                             if (assigned.length === 0) {
                               return (
-                                <span className="px-1.5 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-500 text-[10px] font-medium rounded">
-                                  Fallback: {member.designation}
+                                <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-zinc-650 text-[10px] font-semibold rounded-md">
+                                  Standard: {member.designation === 'TASK_COMPLETION' ? 'Phase 1' : member.designation === 'INVOICE_CREATION' ? 'Phase 2' : 'Phase 3'}
                                 </span>
                               );
                             }
@@ -443,22 +564,38 @@ export default function StaffManagement() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-1">
-                  {isEditMode ? 'Password (leave blank to keep current)' : 'Temporary Password'}
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider">
+                    {isEditMode ? 'Password (leave blank to keep current)' : 'Temporary Password'}
+                  </label>
+                  {!isEditMode && (
+                    <button
+                      type="button"
+                      onClick={generateRandomPassword}
+                      className="text-[11px] font-bold text-brand-orange hover:text-orange-700 cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🎲 Generate Password</span>
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
                     <KeyRound className="h-4.5 w-4.5" />
                   </span>
                   <input
-                    type="password"
+                    type="text"
                     required={!isEditMode}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder={isEditMode ? '•••••••• (optional)' : '••••••••'}
+                    placeholder={isEditMode ? '•••••••• (optional)' : 'e.g. Pass@9821 or click Generate'}
                     className="block w-full pl-9 pr-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange"
                   />
                 </div>
+                {!isEditMode && (
+                  <p className="text-[11px] text-zinc-400 mt-1">
+                    Employee will be required to change this temporary password upon first login.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -559,8 +696,8 @@ export default function StaffManagement() {
           setStaffToDelete(null);
         }}
         onConfirm={handleConfirmDelete}
-        title="Delete Staff Member Account"
-        message={staffToDelete ? `Are you sure you want to delete staff member "${staffToDelete.name}"? \nThis will permanently disable their login and remove their platform workspace access privileges.` : ''}
+        title={staffToDelete ? `Delete Account "${staffToDelete.name}"?` : "Delete Staff Member Account"}
+        message={staffToDelete ? `Are you sure you want to delete staff member "${staffToDelete.name}"? If active orders are assigned to them, deletion will be safely blocked.` : ''}
         confirmText="Confirm & Delete"
         loading={deleteLoading}
       />
