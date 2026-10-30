@@ -1,12 +1,5 @@
 import { query } from '@/lib/db';
-import { Lexend } from "next/font/google";
 import "./globals.css";
-
-const lexend = Lexend({
-  variable: "--font-lexend",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
-});
 
 export async function generateMetadata() {
   let appName = 'Portal';
@@ -41,11 +34,14 @@ export default async function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${lexend.variable} h-full antialiased`}
+      className="h-full antialiased"
       suppressHydrationWarning
     >
       <head>
         <link rel="icon" href={favicon} />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>{children}</body>
     </html>

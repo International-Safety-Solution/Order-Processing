@@ -13,6 +13,7 @@
   --foreground: #090d16;
   --primary-orange: #f97316;
   --primary-green: #10b981;
+  --font-lexend: 'Lexend', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 body {
