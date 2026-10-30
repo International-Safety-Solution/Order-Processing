@@ -356,6 +356,10 @@ async function ensureDatabaseAndPool() {
       }
 
       try {
+        await pool.execute('ALTER TABLE orders ADD COLUMN stage1_upload_history TEXT NULL');
+      } catch (e) {}
+
+      try {
         await pool.execute('ALTER TABLE permission_scopes ADD COLUMN name VARCHAR(255) NULL');
       } catch (e) {}
       try {
