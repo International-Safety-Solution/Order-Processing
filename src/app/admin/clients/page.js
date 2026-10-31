@@ -223,10 +223,12 @@ export default function ClientManagement() {
         const addrA = (a.address || '').toLowerCase();
         const addrB = (b.address || '').toLowerCase();
         comparison = addrA.localeCompare(addrB);
-      } else if (sortField === 'orders') {
-        const ordersA = Number(a.total_orders) || 0;
-        const ordersB = Number(b.total_orders) || 0;
-        comparison = ordersA - ordersB;
+      } else if (sortField === 'done') {
+        comparison = (Number(a.completed_orders) || 0) - (Number(b.completed_orders) || 0);
+      } else if (sortField === 'pending') {
+        comparison = (Number(a.pending_orders) || 0) - (Number(b.pending_orders) || 0);
+      } else if (sortField === 'in_progress') {
+        comparison = (Number(a.in_progress_orders) || 0) - (Number(b.in_progress_orders) || 0);
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
@@ -459,15 +461,55 @@ export default function ClientManagement() {
                     </div>
                   </th>
 
-                  {/* Orders Status */}
+                  {/* Done Column */}
                   <th 
-                    onClick={() => handleSort('orders')} 
-                    title={sortField === 'orders' ? (sortDirection === 'asc' ? 'Orders: Low to High' : 'Orders: High to Low') : 'Sort by Total Orders'}
-                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                    onClick={() => handleSort('done')} 
+                    title={sortField === 'done' ? (sortDirection === 'asc' ? 'Done: Low to High' : 'Done: High to Low') : 'Sort by Done Orders'}
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-20"
                   >
-                    <div className="flex items-center gap-1.5 font-bold text-zinc-700">
-                      <span>Orders Status</span>
-                      {sortField === 'orders' ? (
+                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
+                      <span>Done</span>
+                      {sortField === 'done' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* Pending Column */}
+                  <th 
+                    onClick={() => handleSort('pending')} 
+                    title={sortField === 'pending' ? (sortDirection === 'asc' ? 'Pending: Low to High' : 'Pending: High to Low') : 'Sort by Pending Orders'}
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-24"
+                  >
+                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
+                      <span>Pending</span>
+                      {sortField === 'pending' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* In Progress Column */}
+                  <th 
+                    onClick={() => handleSort('in_progress')} 
+                    title={sortField === 'in_progress' ? (sortDirection === 'asc' ? 'In Progress: Low to High' : 'In Progress: High to Low') : 'Sort by In Progress Orders'}
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-28"
+                  >
+                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
+                      <span>In Progress</span>
+                      {sortField === 'in_progress' ? (
                         sortDirection === 'asc' ? (
                           <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
                         ) : (
@@ -538,48 +580,37 @@ export default function ClientManagement() {
                       </div>
                     </td>
 
-                    {/* Orders Status Breakdown */}
-                    <td className="py-3 px-4 whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        {/* Completed Orders */}
-                        <span 
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition-colors ${
-                            (Number(client.completed_orders) || 0) > 0 
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                              : 'bg-zinc-50 text-zinc-400 border-zinc-200/60'
-                          }`}
-                          title={`${client.completed_orders || 0} Completed Orders`}
-                        >
-                          <CheckCircle2 className={`h-3.5 w-3.5 ${Number(client.completed_orders) > 0 ? 'text-emerald-600' : 'text-zinc-400'}`} />
-                          <span>{client.completed_orders || 0} Done</span>
-                        </span>
+                    {/* Done Count */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${
+                        (Number(client.completed_orders) || 0) > 0 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs' 
+                          : 'text-zinc-400 font-medium'
+                      }`}>
+                        {client.completed_orders || 0}
+                      </span>
+                    </td>
 
-                        {/* In Progress Orders */}
-                        <span 
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition-colors ${
-                            (Number(client.in_progress_orders) || 0) > 0 
-                              ? 'bg-sky-50 text-sky-800 border-sky-200' 
-                              : 'bg-zinc-50 text-zinc-400 border-zinc-200/60'
-                          }`}
-                          title={`${client.in_progress_orders || 0} In Progress Orders (Stage 2 / Stage 3)`}
-                        >
-                          <Clock className={`h-3.5 w-3.5 ${Number(client.in_progress_orders) > 0 ? 'text-sky-600' : 'text-zinc-400'}`} />
-                          <span>{client.in_progress_orders || 0} In Progress</span>
-                        </span>
+                    {/* Pending Count */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${
+                        (Number(client.pending_orders) || 0) > 0 
+                          ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-2xs' 
+                          : 'text-zinc-400 font-medium'
+                      }`}>
+                        {client.pending_orders || 0}
+                      </span>
+                    </td>
 
-                        {/* Pending Orders */}
-                        <span 
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition-colors ${
-                            (Number(client.pending_orders) || 0) > 0 
-                              ? 'bg-amber-50 text-amber-800 border-amber-200' 
-                              : 'bg-zinc-50 text-zinc-400 border-zinc-200/60'
-                          }`}
-                          title={`${client.pending_orders || 0} Pending Orders (Stage 1)`}
-                        >
-                          <AlertCircle className={`h-3.5 w-3.5 ${Number(client.pending_orders) > 0 ? 'text-amber-600' : 'text-zinc-400'}`} />
-                          <span>{client.pending_orders || 0} Pending</span>
-                        </span>
-                      </div>
+                    {/* In Progress Count */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <span className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${
+                        (Number(client.in_progress_orders) || 0) > 0 
+                          ? 'bg-sky-50 text-sky-700 border border-sky-200 shadow-2xs' 
+                          : 'text-zinc-400 font-medium'
+                      }`}>
+                        {client.in_progress_orders || 0}
+                      </span>
                     </td>
 
                     {/* Contact Phone (Hover Popover) */}
