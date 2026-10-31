@@ -1,7 +1,119 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { UserSquare2, UserPlus, Phone, Mail, MapPin, CheckCircle2, AlertCircle, RefreshCw, Pencil, Trash2, ShieldAlert, List, LayoutGrid, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { 
+  UserSquare2, UserPlus, Phone, Mail, MapPin, CheckCircle2, AlertCircle, 
+  RefreshCw, Pencil, Trash2, ShieldAlert, List, LayoutGrid, Search, 
+  ArrowUpDown, ArrowUp, ArrowDown, Copy, Check, Clock, PackageCheck, Package 
+} from 'lucide-react';
+
+function HoverPopover({
+  icon: Icon,
+  title,
+  value,
+  iconColor = 'text-brand-orange',
+  badgeBg = 'bg-orange-50 hover:bg-orange-100 text-brand-orange border-orange-200/80',
+  width = 'w-64',
+  isFirstRow = false,
+  align = 'center'
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef(null);
+
+  if (!value || !value.toString().trim()) {
+    return <span className="text-zinc-350 font-medium select-none text-xs">—</span>;
+  }
+
+  const valStr = value.toString().trim();
+
+  const handleMouseEnter = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timerRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 300);
+  };
+
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(valStr);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  let alignClass = 'left-1/2 -translate-x-1/2';
+  let arrowClass = 'left-1/2 -translate-x-1/2';
+  if (align === 'left') {
+    alignClass = 'left-0';
+    arrowClass = 'left-4';
+  } else if (align === 'right') {
+    alignClass = 'right-0';
+    arrowClass = 'right-4';
+  }
+
+  const positionClass = isFirstRow ? 'top-full mt-2' : 'bottom-full mb-2';
+
+  return (
+    <div 
+      className="relative inline-flex items-center justify-center"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button
+        type="button"
+        onClick={handleCopy}
+        title={`Hover to view or click to copy ${title}`}
+        className={`p-2 rounded-lg transition-all duration-150 border cursor-pointer flex items-center justify-center group shadow-2xs hover:shadow-sm ${badgeBg}`}
+      >
+        <Icon className={`h-4 w-4 ${iconColor} transition-transform group-hover:scale-110`} />
+      </button>
+
+      {isOpen && (
+        <div
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          className={`absolute ${positionClass} ${alignClass} ${width} p-3 bg-white rounded-xl shadow-2xl border border-zinc-200/90 text-left z-50 animate-in fade-in zoom-in-95 duration-150`}
+        >
+          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-zinc-100">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+              <Icon className={`h-3 w-3 ${iconColor}`} />
+              <span>{title}</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex items-center gap-1 text-[11px] font-semibold text-brand-orange hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-0.5 rounded transition-colors cursor-pointer"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3 text-emerald-600" />
+                  <span className="text-emerald-700">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          </div>
+          <div className="text-xs text-zinc-800 font-medium select-text break-words leading-relaxed max-h-36 overflow-y-auto font-sans">
+            {valStr}
+          </div>
+          {isFirstRow ? (
+            <div className={`absolute bottom-full ${arrowClass} -mb-1 w-2 h-2 bg-white border-t border-l border-zinc-200 rotate-45`} />
+          ) : (
+            <div className={`absolute top-full ${arrowClass} -mt-1 w-2 h-2 bg-white border-b border-r border-zinc-200 rotate-45`} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 import DeleteConfirmModal from '@/components/DeleteConfirmModal';
 
 export default function ClientManagement() {
@@ -111,6 +223,10 @@ export default function ClientManagement() {
         const addrA = (a.address || '').toLowerCase();
         const addrB = (b.address || '').toLowerCase();
         comparison = addrA.localeCompare(addrB);
+      } else if (sortField === 'orders') {
+        const ordersA = Number(a.total_orders) || 0;
+        const ordersB = Number(b.total_orders) || 0;
+        comparison = ordersA - ordersB;
       }
       return sortDirection === 'asc' ? comparison : -comparison;
     });
@@ -343,15 +459,15 @@ export default function ClientManagement() {
                     </div>
                   </th>
 
-                  {/* Contact Phone */}
+                  {/* Orders Status */}
                   <th 
-                    onClick={() => handleSort('phone')} 
-                    title={sortField === 'phone' ? (sortDirection === 'asc' ? 'Phone: Low to High' : 'Phone: High to Low') : 'Sort by Contact Phone'}
+                    onClick={() => handleSort('orders')} 
+                    title={sortField === 'orders' ? (sortDirection === 'asc' ? 'Orders: Low to High' : 'Orders: High to Low') : 'Sort by Total Orders'}
                     className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
                   >
                     <div className="flex items-center gap-1.5 font-bold text-zinc-700">
-                      <span>Contact Phone</span>
-                      {sortField === 'phone' ? (
+                      <span>Orders Status</span>
+                      {sortField === 'orders' ? (
                         sortDirection === 'asc' ? (
                           <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
                         ) : (
@@ -360,6 +476,18 @@ export default function ClientManagement() {
                       ) : (
                         <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
                       )}
+                    </div>
+                  </th>
+
+                  {/* Contact Phone */}
+                  <th 
+                    onClick={() => handleSort('phone')} 
+                    title={sortField === 'phone' ? (sortDirection === 'asc' ? 'Phone: Low to High' : 'Phone: High to Low') : 'Sort by Contact Phone'}
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-20"
+                  >
+                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
+                      <Phone className="h-3.5 w-3.5 text-zinc-500" />
+                      <span>Phone</span>
                     </div>
                   </th>
 
@@ -367,19 +495,11 @@ export default function ClientManagement() {
                   <th 
                     onClick={() => handleSort('email')} 
                     title={sortField === 'email' ? (sortDirection === 'asc' ? 'Email: A to Z' : 'Email: Z to A') : 'Sort by Email Address'}
-                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-20"
                   >
-                    <div className="flex items-center gap-1.5 font-bold text-zinc-700">
-                      <span>Email Address</span>
-                      {sortField === 'email' ? (
-                        sortDirection === 'asc' ? (
-                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
-                        ) : (
-                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
-                      )}
+                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
+                      <Mail className="h-3.5 w-3.5 text-zinc-500" />
+                      <span>Email</span>
                     </div>
                   </th>
 
@@ -387,19 +507,11 @@ export default function ClientManagement() {
                   <th 
                     onClick={() => handleSort('address')} 
                     title={sortField === 'address' ? (sortDirection === 'asc' ? 'Address: A to Z' : 'Address: Z to A') : 'Sort by Address'}
-                    className="whitespace-nowrap py-3 px-4 cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group"
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-24"
                   >
-                    <div className="flex items-center gap-1.5 font-bold text-zinc-700">
-                      <span>Delivery / Billing Address</span>
-                      {sortField === 'address' ? (
-                        sortDirection === 'asc' ? (
-                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
-                        ) : (
-                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-50 group-hover:opacity-100 group-hover:text-zinc-600 transition-opacity shrink-0" />
-                      )}
+                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
+                      <MapPin className="h-3.5 w-3.5 text-zinc-500" />
+                      <span>Address</span>
                     </div>
                   </th>
 
@@ -426,37 +538,88 @@ export default function ClientManagement() {
                       </div>
                     </td>
 
-                    <td className="py-3 px-4 text-zinc-600 whitespace-nowrap">
-                      {client.phone ? (
-                        <div className="flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-brand-orange shrink-0" />
-                          <span>{client.phone}</span>
-                        </div>
-                      ) : (
-                        <span className="text-zinc-300">—</span>
-                      )}
+                    {/* Orders Status Breakdown */}
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1.5">
+                        {/* Completed Orders */}
+                        <span 
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition-colors ${
+                            (Number(client.completed_orders) || 0) > 0 
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                              : 'bg-zinc-50 text-zinc-400 border-zinc-200/60'
+                          }`}
+                          title={`${client.completed_orders || 0} Completed Orders`}
+                        >
+                          <CheckCircle2 className={`h-3.5 w-3.5 ${Number(client.completed_orders) > 0 ? 'text-emerald-600' : 'text-zinc-400'}`} />
+                          <span>{client.completed_orders || 0} Done</span>
+                        </span>
+
+                        {/* In Progress Orders */}
+                        <span 
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition-colors ${
+                            (Number(client.in_progress_orders) || 0) > 0 
+                              ? 'bg-sky-50 text-sky-800 border-sky-200' 
+                              : 'bg-zinc-50 text-zinc-400 border-zinc-200/60'
+                          }`}
+                          title={`${client.in_progress_orders || 0} In Progress Orders (Stage 2 / Stage 3)`}
+                        >
+                          <Clock className={`h-3.5 w-3.5 ${Number(client.in_progress_orders) > 0 ? 'text-sky-600' : 'text-zinc-400'}`} />
+                          <span>{client.in_progress_orders || 0} In Progress</span>
+                        </span>
+
+                        {/* Pending Orders */}
+                        <span 
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold border transition-colors ${
+                            (Number(client.pending_orders) || 0) > 0 
+                              ? 'bg-amber-50 text-amber-800 border-amber-200' 
+                              : 'bg-zinc-50 text-zinc-400 border-zinc-200/60'
+                          }`}
+                          title={`${client.pending_orders || 0} Pending Orders (Stage 1)`}
+                        >
+                          <AlertCircle className={`h-3.5 w-3.5 ${Number(client.pending_orders) > 0 ? 'text-amber-600' : 'text-zinc-400'}`} />
+                          <span>{client.pending_orders || 0} Pending</span>
+                        </span>
+                      </div>
                     </td>
 
-                    <td className="py-3 px-4 text-zinc-600 whitespace-nowrap">
-                      {client.email ? (
-                        <div className="flex items-center gap-1.5">
-                          <Mail className="h-3.5 w-3.5 text-brand-orange shrink-0" />
-                          <span>{client.email}</span>
-                        </div>
-                      ) : (
-                        <span className="text-zinc-300">—</span>
-                      )}
+                    {/* Contact Phone (Hover Popover) */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <HoverPopover
+                        icon={Phone}
+                        title="Contact Phone"
+                        value={client.phone}
+                        iconColor="text-amber-600"
+                        badgeBg="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200/80"
+                        isFirstRow={index === 0}
+                        width="w-60"
+                      />
                     </td>
 
-                    <td className="py-3 px-4 text-zinc-600 max-w-sm truncate">
-                      {client.address ? (
-                        <div className="flex items-start gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-brand-orange shrink-0 mt-0.5" />
-                          <span className="truncate text-xs" title={client.address}>{client.address}</span>
-                        </div>
-                      ) : (
-                        <span className="text-zinc-300">—</span>
-                      )}
+                    {/* Email Address (Hover Popover) */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <HoverPopover
+                        icon={Mail}
+                        title="Email Address"
+                        value={client.email}
+                        iconColor="text-sky-600"
+                        badgeBg="bg-sky-50 hover:bg-sky-100 text-sky-700 border-sky-200/80"
+                        isFirstRow={index === 0}
+                        width="w-72"
+                      />
+                    </td>
+
+                    {/* Delivery / Billing Address (Hover Popover) */}
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <HoverPopover
+                        icon={MapPin}
+                        title="Delivery / Billing Address"
+                        value={client.address}
+                        iconColor="text-emerald-600"
+                        badgeBg="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200/80"
+                        isFirstRow={index === 0}
+                        width="w-80"
+                        align={index === 0 ? 'center' : 'right'}
+                      />
                     </td>
 
                     {(canEdit || canDelete) && (
@@ -508,6 +671,22 @@ export default function ClientManagement() {
 
                 <div>
                   <h3 className="text-base font-bold text-zinc-950 truncate tracking-tight">{client.name}</h3>
+                </div>
+
+                {/* Order Pipeline Counts */}
+                <div className="grid grid-cols-3 gap-2 py-2 border-t border-zinc-100 text-center">
+                  <div className="p-2 rounded-lg bg-emerald-50/70 border border-emerald-100">
+                    <span className="text-[10px] uppercase font-bold text-emerald-600 block">Done</span>
+                    <span className="text-sm font-extrabold text-emerald-800">{client.completed_orders || 0}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-sky-50/70 border border-sky-100">
+                    <span className="text-[10px] uppercase font-bold text-sky-600 block">Progress</span>
+                    <span className="text-sm font-extrabold text-sky-800">{client.in_progress_orders || 0}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-amber-50/70 border border-amber-100">
+                    <span className="text-[10px] uppercase font-bold text-amber-600 block">Pending</span>
+                    <span className="text-sm font-extrabold text-amber-800">{client.pending_orders || 0}</span>
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-xs text-zinc-600 border-t border-zinc-100 pt-3">

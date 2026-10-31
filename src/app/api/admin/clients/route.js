@@ -12,7 +12,18 @@ export async function GET() {
   }
 
   try {
-    const clients = await query('SELECT * FROM clients ORDER BY name ASC');
+    const clients = await query(`
+      SELECT 
+        c.*,
+        COUNT(o.id) AS total_orders,
+        COUNT(CASE WHEN o.status = 'COMPLETED' THEN 1 END) AS completed_orders,
+        COUNT(CASE WHEN o.status IN ('PENDING_INVOICE', 'PENDING_COURIER') THEN 1 END) AS in_progress_orders,
+        COUNT(CASE WHEN (o.status = 'PENDING_TASK' OR o.status = 'PENDING') THEN 1 END) AS pending_orders
+      FROM clients c
+      LEFT JOIN orders o ON c.id = o.client_id
+      GROUP BY c.id
+      ORDER BY c.name ASC
+    `);
     return Response.json(clients);
   } catch (error) {
     console.error('Fetch clients error:', error);

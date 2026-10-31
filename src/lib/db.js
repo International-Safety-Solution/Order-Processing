@@ -497,7 +497,19 @@ function handleMockQuery(sql, params) {
 
   // SELECT * FROM clients
   if (sqlNormalized.startsWith('select') && sqlNormalized.includes('from clients')) {
-    let list = db.clients;
+    let list = db.clients.map(client => {
+      const clientOrders = (db.orders || []).filter(o => Number(o.client_id) === Number(client.id));
+      const completed = clientOrders.filter(o => o.status === 'COMPLETED').length;
+      const inProgress = clientOrders.filter(o => o.status === 'PENDING_INVOICE' || o.status === 'PENDING_COURIER').length;
+      const pending = clientOrders.filter(o => o.status === 'PENDING_TASK' || o.status === 'PENDING' || !o.status).length;
+      return {
+        ...client,
+        total_orders: clientOrders.length,
+        completed_orders: completed,
+        in_progress_orders: inProgress,
+        pending_orders: pending
+      };
+    });
     if (sqlNormalized.includes('where id = ?')) {
       const id = parseInt(params[0]);
       list = list.filter(c => c.id === id);
