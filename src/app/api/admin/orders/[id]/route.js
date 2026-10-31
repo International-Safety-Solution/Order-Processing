@@ -226,7 +226,9 @@ export async function PATCH(request, context) {
         // Physical deletion
         if (filePath) {
           try {
-            const fullP = path.join(process.cwd(), 'public', filePath.trim());
+            const baseUploadDir = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(process.cwd(), 'public', 'uploads');
+            const cleanRel = filePath.trim().replace(/^\/?uploads\/?/, '');
+            const fullP = path.join(baseUploadDir, cleanRel);
             if (fs.existsSync(fullP)) fs.unlinkSync(fullP);
           } catch (e) {
             console.error('File unlink error:', e);
@@ -268,7 +270,9 @@ export async function PATCH(request, context) {
 
         if (filePath) {
           try {
-            const fullP = path.join(process.cwd(), 'public', filePath.trim());
+            const baseUploadDir = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(process.cwd(), 'public', 'uploads');
+            const cleanRel = filePath.trim().replace(/^\/?uploads\/?/, '');
+            const fullP = path.join(baseUploadDir, cleanRel);
             if (fs.existsSync(fullP)) fs.unlinkSync(fullP);
           } catch (e) {
             console.error('File unlink error:', e);

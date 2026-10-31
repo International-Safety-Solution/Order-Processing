@@ -90,8 +90,11 @@ export async function POST(request) {
 
     const dateStr = customDate ? sanitizeName(customDate) : formatKarachiShortDate();
 
-    // Target directory: public/uploads/[PO|DC|Invoice]
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', subFolder);
+    // Target directory: public/uploads/[PO|DC|Invoice] or custom UPLOAD_DIR
+    const baseUploadDir = process.env.UPLOAD_DIR 
+      ? path.resolve(process.env.UPLOAD_DIR) 
+      : path.join(process.cwd(), 'public', 'uploads');
+    const uploadDir = path.join(baseUploadDir, subFolder);
     await mkdir(uploadDir, { recursive: true });
 
     // Base filename pattern: Order No - Client Name - Date - (PO/DC/Invoice)
