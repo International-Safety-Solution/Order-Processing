@@ -105,7 +105,9 @@ async function ensureDatabaseAndPool() {
       queueLimit: 0,
       idleTimeout: 60000,
       enableKeepAlive: true,
-      keepAliveInitialDelay: 0
+      keepAliveInitialDelay: 0,
+      timezone: '+05:00',
+      dateStrings: true
     });
 
     global.mysqlPool = pool;

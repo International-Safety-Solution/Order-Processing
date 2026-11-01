@@ -741,12 +741,8 @@ export default function ClientOrders() {
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '';
     try {
-      let parsedDate;
-      if (dateStr.includes('T')) {
-        parsedDate = new Date(dateStr);
-      } else {
-        parsedDate = new Date(dateStr.replace(' ', 'T'));
-      }
+      let str = String(dateStr).trim().replace('Z', '').split('.')[0].replace(' ', 'T');
+      const parsedDate = /[+-]\d{2}:\d{2}$/.test(str) ? new Date(str) : new Date(`${str}+05:00`);
 
       const day = String(parsedDate.getDate()).padStart(2, '0');
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

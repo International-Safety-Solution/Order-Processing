@@ -166,7 +166,7 @@ export async function POST(request, context) {
         return Response.json({ success: true, message: 'Delivery Challan uploaded, stage 1 completed.' });
       } else if (order.status === 'PENDING_INVOICE') {
         // Re-upload within buffer window check
-        const elapsed = getKarachiDateObj(new Date()) - parsePKTDate(order.stage1_completed_at);
+        const elapsed = Date.now() - parsePKTDate(order.stage1_completed_at).getTime();
         if (elapsed >= bufferMs) {
           return Response.json({ error: `Re-upload window has expired (limit: ${bufferMinutes} minutes)` }, { status: 400 });
         }
@@ -231,7 +231,7 @@ export async function POST(request, context) {
         // Verify previous stage buffer is complete (skip if prev stage edit limit reached)
         const prevEditCount = parseInt(order.stage1_edit_count || 0);
         const prevEditLimitReached = maxReuploadCount >= 0 && prevEditCount >= maxReuploadCount;
-        const elapsedPrev = getKarachiDateObj(new Date()) - parsePKTDate(order.stage1_completed_at);
+        const elapsedPrev = Date.now() - parsePKTDate(order.stage1_completed_at).getTime();
         if (elapsedPrev < bufferMs && !prevEditLimitReached) {
           return Response.json({ error: 'Previous stage buffer is still active. Please wait.' }, { status: 400 });
         }
@@ -278,7 +278,7 @@ export async function POST(request, context) {
         return Response.json({ success: true, message: 'Invoice uploaded, task completed.' });
       } else if (order.status === 'PENDING_COURIER') {
         // Re-upload within buffer window check
-        const elapsed = getKarachiDateObj(new Date()) - parsePKTDate(order.stage2_completed_at);
+        const elapsed = Date.now() - parsePKTDate(order.stage2_completed_at).getTime();
         if (elapsed >= bufferMs) {
           return Response.json({ error: `Re-upload window has expired (limit: ${bufferMinutes} minutes)` }, { status: 400 });
         }
@@ -321,7 +321,7 @@ export async function POST(request, context) {
         // Verify previous stage buffer is complete (skip if prev stage edit limit reached)
         const prevEditCount3 = parseInt(order.stage2_edit_count || 0);
         const prevEditLimitReached3 = maxReuploadCount >= 0 && prevEditCount3 >= maxReuploadCount;
-        const elapsedPrev = getKarachiDateObj(new Date()) - parsePKTDate(order.stage2_completed_at);
+        const elapsedPrev = Date.now() - parsePKTDate(order.stage2_completed_at).getTime();
         if (elapsedPrev < bufferMs && !prevEditLimitReached3) {
           return Response.json({ error: 'Previous stage buffer is still active. Please wait.' }, { status: 400 });
         }
@@ -365,7 +365,7 @@ export async function POST(request, context) {
         return Response.json({ success: true, message: 'Courier Tracking ID added. Order completed successfully!' });
       } else if (order.status === 'COMPLETED') {
         // Re-upload within buffer window check
-        const elapsed = getKarachiDateObj(new Date()) - parsePKTDate(order.stage3_completed_at);
+        const elapsed = Date.now() - parsePKTDate(order.stage3_completed_at).getTime();
         if (elapsed >= bufferMs) {
           return Response.json({ error: `Re-upload window has expired (limit: ${bufferMinutes} minutes)` }, { status: 400 });
         }

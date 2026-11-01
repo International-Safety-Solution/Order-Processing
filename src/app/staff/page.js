@@ -71,32 +71,26 @@ const convertToWebP = (file) => {
   });
 };
 
-function getKarachiDateObj(dateInput = new Date()) {
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Asia/Karachi',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false
-  });
-
-  const parts = formatter.formatToParts(dateInput);
-  const partMap = {};
-  parts.forEach(p => { partMap[p.type] = p.value; });
-  const str = `${partMap.year}-${partMap.month}-${partMap.day}T${partMap.hour}:${partMap.minute}:${partMap.second}`;
-  return new Date(str);
-}
-
 function parsePKTDate(dateInput) {
   if (!dateInput) return new Date();
-  if (dateInput instanceof Date) {
-    return getKarachiDateObj(dateInput);
+  if (dateInput instanceof Date) return dateInput;
+  if (typeof dateInput === 'string') {
+    let str = dateInput.trim();
+    if (!str) return new Date();
+    // If it already has an offset like +05:00
+    if (/[+-]\d{2}:\d{2}$/.test(str)) {
+      return new Date(str);
+    }
+    // Strip trailing 'Z' and milliseconds if present,
+    // because dates in MySQL were saved as PKT (UTC+5).
+    str = str.replace('Z', '').split('.')[0].replace(' ', 'T');
+    return new Date(`${str}+05:00`);
   }
-  const formatted = dateInput.includes('T') ? dateInput : dateInput.replace(' ', 'T');
-  return new Date(formatted);
+  return new Date(dateInput);
+}
+
+function getKarachiDateObj(dateInput = new Date()) {
+  return parsePKTDate(dateInput);
 }
 
 export default function StaffDashboard() {
@@ -469,17 +463,17 @@ export default function StaffDashboard() {
     // Check if edit limit is reached for each stage
     const stage1EditCount = parseInt(order.stage1_edit_count || 0);
     const isTask1EditLimitReached = maxReuploadCount >= 0 && stage1EditCount >= maxReuploadCount;
-    const elapsed1 = order.stage1_completed_at ? (currentKarachiTime - parsePKTDate(order.stage1_completed_at)) : null;
+    const elapsed1 = order.stage1_completed_at ? (now.getTime() - parsePKTDate(order.stage1_completed_at).getTime()) : null;
     const isBuffer1Active = elapsed1 !== null && elapsed1 < bufferMs && !isTask1EditLimitReached;
 
     const stage2EditCount = parseInt(order.stage2_edit_count || 0);
     const isTask2EditLimitReached = maxReuploadCount >= 0 && stage2EditCount >= maxReuploadCount;
-    const elapsed2 = order.stage2_completed_at ? (currentKarachiTime - parsePKTDate(order.stage2_completed_at)) : null;
+    const elapsed2 = order.stage2_completed_at ? (now.getTime() - parsePKTDate(order.stage2_completed_at).getTime()) : null;
     const isBuffer2Active = elapsed2 !== null && elapsed2 < bufferMs && !isTask2EditLimitReached;
 
     const stage3EditCount = parseInt(order.stage3_edit_count || 0);
     const isTask3EditLimitReached = maxReuploadCount >= 0 && stage3EditCount >= maxReuploadCount;
-    const elapsed3 = order.stage3_completed_at ? (currentKarachiTime - parsePKTDate(order.stage3_completed_at)) : null;
+    const elapsed3 = order.stage3_completed_at ? (now.getTime() - parsePKTDate(order.stage3_completed_at).getTime()) : null;
     const isBuffer3Active = elapsed3 !== null && elapsed3 < bufferMs && !isTask3EditLimitReached;
 
     const canAct1 = isTask1 && Number(order.assigned_staff_1_id) === Number(user?.id);
@@ -612,13 +606,13 @@ export default function StaffDashboard() {
                 const bufferMs = reuploadBufferTime * 60 * 1000;
                 const currentKarachiTime = getKarachiDateObj(now);
 
-                const elapsed1 = order.stage1_completed_at ? (currentKarachiTime - parsePKTDate(order.stage1_completed_at)) : null;
+                const elapsed1 = order.stage1_completed_at ? (now.getTime() - parsePKTDate(order.stage1_completed_at).getTime()) : null;
                 const isBuffer1Active = elapsed1 !== null && elapsed1 < bufferMs && !isTask1EditLimitReached;
 
-                const elapsed2 = order.stage2_completed_at ? (currentKarachiTime - parsePKTDate(order.stage2_completed_at)) : null;
+                const elapsed2 = order.stage2_completed_at ? (now.getTime() - parsePKTDate(order.stage2_completed_at).getTime()) : null;
                 const isBuffer2Active = elapsed2 !== null && elapsed2 < bufferMs && !isTask2EditLimitReached;
 
-                const elapsed3 = order.stage3_completed_at ? (currentKarachiTime - parsePKTDate(order.stage3_completed_at)) : null;
+                const elapsed3 = order.stage3_completed_at ? (now.getTime() - parsePKTDate(order.stage3_completed_at).getTime()) : null;
                 const isBuffer3Active = elapsed3 !== null && elapsed3 < bufferMs && !isTask3EditLimitReached;
 
                 // Determine effective phase based on ORDER ASSIGNMENT
