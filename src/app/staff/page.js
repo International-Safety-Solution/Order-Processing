@@ -264,7 +264,7 @@ export default function StaffDashboard() {
     let receivedBy = (receivedByNames[orderId] !== undefined ? receivedByNames[orderId] : (currentOrder?.received_by || '')).trim();
     if (actionType === 'COMPLETE_TASK_1' || actionType === 'SAVE_DRAFT_DC') {
       if (!receivedBy) {
-        setErrorMessage('Please enter Received By (Receiver Name). It is compulsory.');
+        setErrorMessage('Please enter Received By (Receiver Name).');
         return;
       }
     }
@@ -343,11 +343,11 @@ export default function StaffDashboard() {
     const currentOrder = orders.find(o => o.id === orderId);
     const receivedBy = (receivedByNames[orderId] !== undefined ? receivedByNames[orderId] : (currentOrder?.received_by || '')).trim();
     if (!receivedBy) {
-      setErrorMessage('Please enter Received By (Receiver Name). It is compulsory.');
+      setErrorMessage('Please enter Received By (Receiver Name).');
       return;
     }
     if (!currentOrder?.dc_image_path || !currentOrder.dc_image_path.trim()) {
-      setErrorMessage('Please upload Delivery Challan (DC) picture. It is compulsory.');
+      setErrorMessage('Please upload Delivery Challan (DC) picture.');
       return;
     }
 
@@ -920,16 +920,11 @@ export default function StaffDashboard() {
                                 })()}
 
                                 <div className="space-y-1.5">
-                                  <div className="flex items-center justify-between">
-                                    <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-700">
-                                      <User className="h-3.5 w-3.5 text-brand-orange" />
-                                      <span>Received By (Receiver Name)</span>
-                                      <span className="text-red-500 font-bold">*</span>
-                                    </label>
-                                    <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                      Compulsory
-                                    </span>
-                                  </div>
+                                  <label className="flex items-center gap-1.5 text-xs font-bold text-zinc-700">
+                                    <User className="h-3.5 w-3.5 text-brand-orange" />
+                                    <span>Received By (Receiver Name)</span>
+                                    <span className="text-red-500 font-bold">*</span>
+                                  </label>
                                   <input
                                     type="text"
                                     required
@@ -945,17 +940,12 @@ export default function StaffDashboard() {
                                     <Upload className="h-4 w-4 text-orange-500 group-hover/upload:text-white transition-colors" />
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-xs font-semibold text-zinc-800 truncate">
-                                        {isTask1Editing
-                                          ? 'Update / Re-upload DC Pictures'
-                                          : (order.dc_image_path ? 'Attach Additional / Remaining DC Pictures' : 'Upload DC Pictures')}{' '}
-                                        <span className="text-red-500 font-bold">*</span>
-                                      </span>
-                                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
-                                        Compulsory
-                                      </span>
-                                    </div>
+                                    <span className="text-xs font-semibold text-zinc-800 block">
+                                      {isTask1Editing
+                                        ? 'Update / Re-upload DC Pictures'
+                                        : (order.dc_image_path ? 'Attach Additional / Remaining DC Pictures' : 'Upload DC Pictures')}{' '}
+                                      <span className="text-red-500 font-bold">*</span>
+                                    </span>
                                     <span className="text-[9px] text-zinc-400 block mt-0.5">JPG · PNG · WEBP · Must include client signature</span>
                                   </div>
                                   <span className="text-zinc-300 group-hover/upload:text-orange-400 transition-colors text-lg">→</span>
@@ -1047,9 +1037,9 @@ export default function StaffDashboard() {
                                       onClick={() => {
                                         const val = (receivedByNames[order.id] !== undefined ? receivedByNames[order.id] : (order.received_by || '')).trim();
                                         if (!val) {
-                                          setErrorMessage('Please enter Received By (Receiver Name). It is compulsory.');
+                                          setErrorMessage('Please enter Received By (Receiver Name).');
                                         } else {
-                                          setErrorMessage('Please upload Delivery Challan (DC) picture. It is compulsory.');
+                                          setErrorMessage('Please upload Delivery Challan (DC) picture.');
                                         }
                                       }}
                                       className="w-full py-2.5 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900 font-bold rounded-xl text-xs transition-all border border-zinc-200 cursor-pointer flex items-center justify-center gap-1.5 active:scale-98 shadow-2xs"
