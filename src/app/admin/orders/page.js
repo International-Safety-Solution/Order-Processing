@@ -1905,7 +1905,7 @@ export default function ClientOrders() {
                     <span className="flex items-center gap-1"><Calendar className="h-3.5 w-3.5 text-brand-green" /> Deadline: {formatDate(selectedOrder.deadline_date)}</span>
                   </div>
                 </div>
-                <p className="text-zinc-650 bg-white border border-zinc-150 p-2.5 rounded-lg">{selectedOrder.details}</p>
+                <p className="text-zinc-650 bg-white border border-zinc-150 p-2.5 rounded-lg whitespace-pre-wrap break-words">{selectedOrder.details}</p>
                 <div className="mt-3 grid grid-cols-2 gap-4 text-xs text-zinc-500">
                   <div>
                     <span className="font-semibold text-zinc-700">Client Address:</span>

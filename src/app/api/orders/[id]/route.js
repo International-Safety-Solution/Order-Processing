@@ -54,7 +54,10 @@ export async function POST(request, context) {
       const newDcPaths = value.split(',').map(s => s.trim()).filter(Boolean);
       const combinedDcPaths = [...existingDcPaths, ...newDcPaths].join(',');
 
-      const finalReceivedBy = (receivedBy && receivedBy.trim()) ? receivedBy.trim() : (order.received_by || null);
+      const finalReceivedBy = (receivedBy && receivedBy.trim()) ? receivedBy.trim() : (order.received_by || '');
+      if (!finalReceivedBy) {
+        return Response.json({ error: 'Received By name is required' }, { status: 400 });
+      }
 
       // Parse and append to upload history
       let uploadHistory = [];
@@ -179,7 +182,15 @@ export async function POST(request, context) {
         const reuploads = JSON.parse(order.stage1_reupload_times || '[]');
         reuploads.push(currentPKTDate);
         
+        const reuploadFiles = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
+        if (reuploadFiles.length === 0) {
+          return Response.json({ error: 'Delivery Challan image/file is required' }, { status: 400 });
+        }
+
         const finalReceivedBy = (receivedBy && receivedBy.trim()) ? receivedBy.trim() : (order.received_by || '');
+        if (!finalReceivedBy) {
+          return Response.json({ error: 'Received By name is required' }, { status: 400 });
+        }
 
         // Update upload history with reupload batch
         let uploadHistory = [];
@@ -191,7 +202,6 @@ export async function POST(request, context) {
             uploadHistory = [];
           }
         }
-        const reuploadFiles = value ? value.split(',').map(s => s.trim()).filter(Boolean) : [];
         uploadHistory.push({
           batch: uploadHistory.length + 1,
           timestamp: currentPKTDate,
