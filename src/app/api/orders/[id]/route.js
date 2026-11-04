@@ -69,6 +69,10 @@ export async function POST(request, context) {
           uploadHistory = [];
         }
       }
+      // Guarantee existing batches are sequentially numbered 1..N without skips
+      uploadHistory.forEach((b, idx) => {
+        b.batch = idx + 1;
+      });
       uploadHistory.push({
         batch: uploadHistory.length + 1,
         timestamp: currentPKTDate,
@@ -119,6 +123,10 @@ export async function POST(request, context) {
             uploadHistory = [];
           }
         }
+        // Guarantee existing batches are sequentially numbered 1..N without skips
+        uploadHistory.forEach((b, idx) => {
+          b.batch = idx + 1;
+        });
         uploadHistory.push({
           batch: uploadHistory.length + 1,
           timestamp: currentPKTDate,
@@ -202,6 +210,10 @@ export async function POST(request, context) {
             uploadHistory = [];
           }
         }
+        // Guarantee existing batches are sequentially numbered 1..N without skips
+        uploadHistory.forEach((b, idx) => {
+          b.batch = idx + 1;
+        });
         uploadHistory.push({
           batch: uploadHistory.length + 1,
           timestamp: currentPKTDate,

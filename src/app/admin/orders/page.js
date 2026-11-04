@@ -122,6 +122,7 @@ export default function ClientOrders() {
   const [showDcHistoryModal, setShowDcHistoryModal] = useState(false);
   const [confirmReopenModal, setConfirmReopenModal] = useState({ open: false, stage: null, clearFiles: false, loading: false });
   const [confirmRemoveFileModal, setConfirmRemoveFileModal] = useState({ open: false, fileType: null, filePath: null, loading: false });
+  const [confirmDeleteBatchModal, setConfirmDeleteBatchModal] = useState({ open: false, batchNumber: null, batchIndex: null, fileCount: 0, receivedBy: '', loading: false });
 
   // Form states (Create Order)
   const [clientId, setClientId] = useState('');
@@ -683,6 +684,39 @@ export default function ClientOrders() {
     } catch (err) {
       alert(err.message);
       setConfirmRemoveFileModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleExecuteDeleteBatch = async () => {
+    if (!selectedOrder || confirmDeleteBatchModal.batchIndex === null) return;
+    setConfirmDeleteBatchModal(prev => ({ ...prev, loading: true }));
+    try {
+      const res = await fetch(`/api/admin/orders/${selectedOrder.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'DELETE_BATCH',
+          batchNumber: confirmDeleteBatchModal.batchNumber,
+          batchIndex: confirmDeleteBatchModal.batchIndex
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete batch');
+
+      setConfirmDeleteBatchModal({ open: false, batchNumber: null, batchIndex: null, fileCount: 0, receivedBy: '', loading: false });
+
+      setSelectedOrder(prev => ({
+        ...prev,
+        dc_image_path: data.dc_image_path,
+        received_by: data.received_by,
+        stage1_upload_history: data.stage1_upload_history,
+        status: data.status || prev.status
+      }));
+
+      fetchOrdersAndData();
+    } catch (err) {
+      alert(err.message);
+      setConfirmDeleteBatchModal(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -2345,9 +2379,27 @@ export default function ClientOrders() {
                                     <span>{formatDateTime(batch.timestamp)}</span>
                                   </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-zinc-400 font-mono bg-zinc-50 border border-zinc-200 px-1.5 py-0.5 rounded">
-                                  {bIdx + 1} / {dcHistory.length}
-                                </span>
+                                <div className="flex flex-col items-end gap-1.5">
+                                  <span className="text-[10px] font-bold text-zinc-400 font-mono bg-zinc-50 border border-zinc-200 px-1.5 py-0.5 rounded">
+                                    {bIdx + 1} / {dcHistory.length}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteBatchModal({
+                                      open: true,
+                                      batchNumber: batch.batch || bIdx + 1,
+                                      batchIndex: bIdx,
+                                      fileCount: Array.isArray(batch.files) ? batch.files.length : 0,
+                                      receivedBy: batch.received_by || 'Not specified',
+                                      loading: false
+                                    })}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 hover:border-red-600 rounded text-[9px] font-bold transition-all shadow-2xs cursor-pointer"
+                                    title={`Delete Complete Batch #${batch.batch || bIdx + 1}`}
+                                  >
+                                    <Trash2 className="h-2.5 w-2.5" />
+                                    <span>Delete Batch</span>
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Receiver Info */}
@@ -2537,7 +2589,7 @@ export default function ClientOrders() {
                 type="button"
                 onClick={() => setConfirmRemoveFileModal({ open: false, fileType: null, filePath: null, loading: false })}
                 disabled={confirmRemoveFileModal.loading}
-                className="px-4 py-2 border border-zinc-200 hover:bg-zinc-100 rounded-xl text-xs font-semibold text-zinc-700 transition-colors"
+                className="px-4 py-2 border border-zinc-200 hover:bg-zinc-100 rounded-xl text-xs font-semibold text-zinc-700 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -2545,10 +2597,59 @@ export default function ClientOrders() {
                 type="button"
                 onClick={handleExecuteRemoveFile}
                 disabled={confirmRemoveFileModal.loading}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>{confirmRemoveFileModal.loading ? 'Removing…' : 'Confirm & Remove'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Complete Batch Modal */}
+      {confirmDeleteBatchModal.open && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="bg-white border border-zinc-200 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-zinc-900">Delete Complete Batch #{confirmDeleteBatchModal.batchNumber}?</h3>
+                <p className="text-xs text-zinc-500 mt-0.5">Order #{selectedOrder?.id} · {selectedOrder?.client_name}</p>
+              </div>
+            </div>
+
+            <div className="text-xs text-zinc-600 bg-red-50/60 border border-red-200 rounded-xl p-3.5 space-y-2">
+              <p className="font-bold text-red-900">
+                Are you sure you want to delete this entire batch?
+              </p>
+              <ul className="list-disc pl-4 space-y-1.5 text-red-800 text-[11px]">
+                <li>All attached DC pictures <b>({confirmDeleteBatchModal.fileCount} file(s))</b> will be permanently removed.</li>
+                <li>The receiver name <b>("{confirmDeleteBatchModal.receivedBy}")</b> saved in this batch will be cleared.</li>
+                <li>Remaining batches will be sequentially renumbered so no batch numbers are skipped.</li>
+                <li>Stage 1 staff will be able to re-upload with a clean state.</li>
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteBatchModal({ open: false, batchNumber: null, batchIndex: null, fileCount: 0, receivedBy: '', loading: false })}
+                disabled={confirmDeleteBatchModal.loading}
+                className="px-4 py-2 border border-zinc-200 hover:bg-zinc-100 rounded-xl text-xs font-semibold text-zinc-700 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDeleteBatch}
+                disabled={confirmDeleteBatchModal.loading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>{confirmDeleteBatchModal.loading ? 'Deleting Batch…' : 'Confirm & Delete Batch'}</span>
               </button>
             </div>
           </div>
