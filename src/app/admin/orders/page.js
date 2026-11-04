@@ -1477,7 +1477,7 @@ export default function ClientOrders() {
                   </div>
 
                   {/* Quantity and Deadline Inputs */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 pb-2">
                     <div>
                       <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                         Quantity (QTY) <span className="text-zinc-400 font-normal lowercase">(optional)</span>
@@ -1577,18 +1577,18 @@ export default function ClientOrders() {
               </div>
 
               {/* Action buttons — sticky footer */}
-              <div className="sticky bottom-0 bg-white border-t border-zinc-200 pt-3 pb-2 flex gap-2 mt-3 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 px-4 sm:px-6 z-10 shadow-sm">
+              <div className="sticky bottom-0 bg-white border-t border-zinc-200 pt-4 pb-4 flex gap-3 mt-6 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 px-4 sm:px-6 z-10 shadow-sm">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors cursor-pointer"
+                  className="flex-1 px-4 py-2.5 border border-zinc-200 rounded-xl text-xs sm:text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={formLoading || clients.length === 0 || staff.length === 0}
-                  className="flex-1 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md shadow-orange-500/20 disabled:opacity-50 cursor-pointer"
+                  className="flex-1 py-2.5 bg-brand-orange hover:bg-orange-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-colors shadow-md shadow-orange-500/20 disabled:opacity-50 cursor-pointer"
                 >
                   {formLoading ? 'Dispatching...' : '✓ Dispatch Order'}
                 </button>
@@ -1788,7 +1788,7 @@ export default function ClientOrders() {
                   </div>
 
                   {/* Quantity and Deadline Inputs */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 pb-2">
                     <div>
                       <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
                         Quantity (QTY) <span className="text-zinc-400 font-normal lowercase">(optional)</span>
@@ -1882,21 +1882,21 @@ export default function ClientOrders() {
               </div>
 
               {/* Action buttons — sticky footer */}
-              <div className="sticky bottom-0 bg-white border-t border-zinc-200 pt-3 pb-2 flex gap-2 mt-3 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 px-4 sm:px-6 z-10 shadow-sm">
+              <div className="sticky bottom-0 bg-white border-t border-zinc-200 pt-4 pb-4 flex gap-3 mt-6 -mx-4 -mb-4 sm:-mx-6 sm:-mb-6 px-4 sm:px-6 z-10 shadow-sm">
                 <button
                   type="button"
                   onClick={() => {
                     setShowEditModal(false);
                     setEditingOrder(null);
                   }}
-                  className="flex-1 px-3 py-2 border border-zinc-200 rounded-lg text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors cursor-pointer"
+                  className="flex-1 px-4 py-2.5 border border-zinc-200 rounded-xl text-xs sm:text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="flex-1 py-2 bg-brand-orange hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-colors shadow-md shadow-orange-500/20 disabled:opacity-50 cursor-pointer"
+                  className="flex-1 py-2.5 bg-brand-orange hover:bg-orange-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-colors shadow-md shadow-orange-500/20 disabled:opacity-50 cursor-pointer"
                 >
                   {formLoading ? 'Saving Changes...' : 'Save Order Changes'}
                 </button>
