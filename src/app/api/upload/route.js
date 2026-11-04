@@ -125,6 +125,19 @@ export async function POST(request) {
       }
     }
 
+    // Also mirror to public_html/uploads so LiteSpeed/Apache can serve directly without waking Node
+    const publicHtmlDir = path.join('/home/u219350258/domains/order.internationalsafetysolution.com/public_html/uploads', subFolder);
+    if (uploadDir !== publicHtmlDir) {
+      try {
+        if (existsSync('/home/u219350258/domains/order.internationalsafetysolution.com/public_html')) {
+          await mkdir(publicHtmlDir, { recursive: true });
+          await writeFile(path.join(publicHtmlDir, filename), buffer);
+        }
+      } catch (e) {
+        // non-blocking
+      }
+    }
+
     const publicPath = `/uploads/${subFolder}/${filename}`;
 
     return Response.json({ 

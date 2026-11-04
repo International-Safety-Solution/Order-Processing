@@ -1115,11 +1115,11 @@ export default function StaffDashboard() {
                                   <div className="flex flex-wrap gap-1.5 p-2.5 bg-white border border-zinc-200 rounded-xl">
                                     <span className="w-full text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Delivery Challans to review:</span>
                                     {order.dc_image_path.split(',').map((path, idx) => (
-                                      <a key={idx} href={path} target="_blank" rel="noopener noreferrer"
+                                      <a key={idx} href={getSafeFileUrl(path)} target="_blank" rel="noopener noreferrer"
                                         onClick={(e) => {
                                           if (!/\.pdf$/i.test(path)) {
                                             e.preventDefault();
-                                            setPreviewImageUrl(path);
+                                            setPreviewImageUrl(getSafeFileUrl(path));
                                           }
                                         }}
                                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 border border-orange-200 text-brand-orange text-[10px] font-bold rounded-full hover:bg-orange-100 transition-colors">
@@ -1224,11 +1224,11 @@ export default function StaffDashboard() {
                                   <div className="flex flex-wrap gap-1.5 p-2.5 bg-white border border-zinc-200 rounded-xl">
                                     <span className="w-full text-[8px] font-bold text-zinc-400 uppercase tracking-widest">Invoices:</span>
                                     {order.invoice_image_path.split(',').map((path, idx) => (
-                                      <a key={idx} href={path} target="_blank" rel="noopener noreferrer"
+                                      <a key={idx} href={getSafeFileUrl(path)} target="_blank" rel="noopener noreferrer"
                                         onClick={(e) => {
                                           if (!/\.pdf$/i.test(path)) {
                                             e.preventDefault();
-                                            setPreviewImageUrl(path);
+                                            setPreviewImageUrl(getSafeFileUrl(path));
                                           }
                                         }}
                                         className="inline-flex items-center gap-1 px-2.5 py-1 bg-orange-50 border border-orange-200 text-brand-orange text-[10px] font-bold rounded-full hover:bg-orange-100 transition-colors">
@@ -1373,14 +1373,14 @@ export default function StaffDashboard() {
                         {order.po_file_path && order.po_file_path.split(',').map((path, idx) => (
                           <a
                             key={idx}
-                            href={path}
+                            href={getSafeFileUrl(path)}
                             download
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => {
                               if (!/\.pdf$/i.test(path)) {
                                 e.preventDefault();
-                                setPreviewImageUrl(path);
+                                setPreviewImageUrl(getSafeFileUrl(path));
                               }
                             }}
                             className="inline-flex items-center justify-center p-1 bg-white hover:bg-orange-50 border border-zinc-200 hover:border-brand-orange text-zinc-400 hover:text-brand-orange rounded transition-colors shadow-xs cursor-pointer"
@@ -1401,13 +1401,13 @@ export default function StaffDashboard() {
                           {order.dc_image_path.split(',').map((path, idx) => (
                             <a
                               key={idx}
-                              href={path}
+                              href={getSafeFileUrl(path)}
                               target="_blank"
                               rel="noopener noreferrer"
                               onClick={(e) => {
                                 if (!/\.pdf$/i.test(path)) {
                                   e.preventDefault();
-                                  setPreviewImageUrl(path);
+                                  setPreviewImageUrl(getSafeFileUrl(path));
                                 }
                               }}
                               className="inline-flex items-center justify-center p-1 bg-white hover:bg-orange-50 border border-zinc-200 hover:border-brand-orange text-zinc-400 hover:text-brand-orange rounded transition-colors shadow-xs cursor-pointer"
@@ -1433,13 +1433,13 @@ export default function StaffDashboard() {
                         {order.invoice_image_path.split(',').map((path, idx) => (
                           <a
                             key={idx}
-                            href={path}
+                            href={getSafeFileUrl(path)}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => {
                               if (!/\.pdf$/i.test(path)) {
                                 e.preventDefault();
-                                setPreviewImageUrl(path);
+                                setPreviewImageUrl(getSafeFileUrl(path));
                               }
                             }}
                             className="inline-flex items-center justify-center p-1 bg-white hover:bg-orange-50 border border-zinc-200 hover:border-brand-orange text-zinc-400 hover:text-brand-orange rounded transition-colors shadow-xs cursor-pointer"

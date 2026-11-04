@@ -1,7 +1,12 @@
 import { readFile, stat, copyFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { getAllCandidateUploadDirs, getPrimaryUploadDir } from '@/lib/storageUtils';
+import { 
+  getAllCandidateUploadDirs, 
+  getPrimaryUploadDir, 
+  findFileOnServer, 
+  syncLegacyUploads 
+} from '@/lib/storageUtils';
 
 const MIME_TYPES = {
   '.webp': 'image/webp',
@@ -36,45 +41,16 @@ export async function GET(request, context) {
       return new Response('Access denied', { status: 403 });
     }
 
-    const candidateDirs = getAllCandidateUploadDirs();
-    let foundFilePath = null;
+    let foundFilePath = findFileOnServer(decodedSegments);
 
-    for (const dir of candidateDirs) {
-      try {
-        const candidate = path.join(dir, ...decodedSegments);
-        if (existsSync(candidate)) {
-          const s = await stat(candidate);
-          if (s.isFile()) {
-            foundFilePath = candidate;
-            break;
-          }
-        }
-      } catch (e) {
-        // continue search
-      }
+    // If not immediately found, trigger legacy sync and try again
+    if (!foundFilePath) {
+      syncLegacyUploads(true);
+      foundFilePath = findFileOnServer(decodedSegments);
     }
 
     if (!foundFilePath) {
-      // Fallback: search by last filename segment in candidate directories
-      const targetFilename = decodedSegments[decodedSegments.length - 1];
-      for (const dir of candidateDirs) {
-        try {
-          if (decodedSegments.length > 1) {
-            const sub = decodedSegments[0];
-            const candidate = path.join(dir, sub, targetFilename);
-            if (existsSync(candidate)) {
-              const s = await stat(candidate);
-              if (s.isFile()) {
-                foundFilePath = candidate;
-                break;
-              }
-            }
-          }
-        } catch (e) {}
-      }
-    }
-
-    if (!foundFilePath) {
+      console.warn(`[STORAGE 404] File not found: ${decodedSegments.join('/')}`);
       return new Response('File not found on server', { status: 404 });
     }
 
@@ -85,6 +61,17 @@ export async function GET(request, context) {
       try {
         await mkdir(path.dirname(primaryTarget), { recursive: true });
         await copyFile(foundFilePath, primaryTarget);
+      } catch (e) {
+        // non-blocking
+      }
+    }
+
+    // Also copy to current build's public/uploads for direct static serving
+    const localTarget = path.join(process.cwd(), 'public', 'uploads', ...decodedSegments);
+    if (foundFilePath !== localTarget && !existsSync(localTarget)) {
+      try {
+        await mkdir(path.dirname(localTarget), { recursive: true });
+        await copyFile(foundFilePath, localTarget);
       } catch (e) {
         // non-blocking
       }
@@ -108,4 +95,8 @@ export async function GET(request, context) {
     console.error('Dynamic file serving error:', error);
     return new Response('Internal Server Error', { status: 500 });
   }
+}
+
+export async function HEAD(request, context) {
+  return GET(request, context);
 }
