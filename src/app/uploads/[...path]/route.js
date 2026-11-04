@@ -1,6 +1,7 @@
-import { readFile, stat } from 'fs/promises';
+import { readFile, stat, copyFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
+import { getAllCandidateUploadDirs, getPrimaryUploadDir } from '@/lib/storageUtils';
 
 const MIME_TYPES = {
   '.webp': 'image/webp',
@@ -21,31 +22,78 @@ export async function GET(request, context) {
       return new Response('File not found', { status: 404 });
     }
 
-    const baseUploadDir = process.env.UPLOAD_DIR 
-      ? path.resolve(process.env.UPLOAD_DIR) 
-      : path.join(process.cwd(), 'public', 'uploads');
+    // Decode URL components safely
+    const decodedSegments = pathSegments.map(seg => {
+      try {
+        return decodeURIComponent(seg);
+      } catch (e) {
+        return seg;
+      }
+    });
 
-    // Decode URL components to handle spaces and special characters
-    const decodedSegments = pathSegments.map(seg => decodeURIComponent(seg));
-    const targetFilePath = path.join(baseUploadDir, ...decodedSegments);
-
-    // Prevent directory traversal security vulnerabilities
-    if (!targetFilePath.startsWith(baseUploadDir)) {
+    // Guard against directory traversal
+    if (decodedSegments.some(seg => seg.includes('..') || seg.includes('/') || seg.includes('\\'))) {
       return new Response('Access denied', { status: 403 });
     }
 
-    if (!existsSync(targetFilePath)) {
+    const candidateDirs = getAllCandidateUploadDirs();
+    let foundFilePath = null;
+
+    for (const dir of candidateDirs) {
+      try {
+        const candidate = path.join(dir, ...decodedSegments);
+        if (existsSync(candidate)) {
+          const s = await stat(candidate);
+          if (s.isFile()) {
+            foundFilePath = candidate;
+            break;
+          }
+        }
+      } catch (e) {
+        // continue search
+      }
+    }
+
+    if (!foundFilePath) {
+      // Fallback: search by last filename segment in candidate directories
+      const targetFilename = decodedSegments[decodedSegments.length - 1];
+      for (const dir of candidateDirs) {
+        try {
+          if (decodedSegments.length > 1) {
+            const sub = decodedSegments[0];
+            const candidate = path.join(dir, sub, targetFilename);
+            if (existsSync(candidate)) {
+              const s = await stat(candidate);
+              if (s.isFile()) {
+                foundFilePath = candidate;
+                break;
+              }
+            }
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!foundFilePath) {
       return new Response('File not found on server', { status: 404 });
     }
 
-    const fileStat = await stat(targetFilePath);
-    if (!fileStat.isFile()) {
-      return new Response('Invalid file request', { status: 400 });
+    // Auto-sync found file into the primary persistent upload directory so it is never lost again
+    const primaryDir = getPrimaryUploadDir();
+    const primaryTarget = path.join(primaryDir, ...decodedSegments);
+    if (foundFilePath !== primaryTarget && !existsSync(primaryTarget)) {
+      try {
+        await mkdir(path.dirname(primaryTarget), { recursive: true });
+        await copyFile(foundFilePath, primaryTarget);
+      } catch (e) {
+        // non-blocking
+      }
     }
 
-    const ext = path.extname(targetFilePath).toLowerCase();
+    const fileStat = await stat(foundFilePath);
+    const ext = path.extname(foundFilePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const fileBuffer = await readFile(targetFilePath);
+    const fileBuffer = await readFile(foundFilePath);
 
     return new Response(fileBuffer, {
       status: 200,
@@ -61,4 +109,3 @@ export async function GET(request, context) {
     return new Response('Internal Server Error', { status: 500 });
   }
 }
-

@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { getSession } from '@/lib/auth';
 import { formatKarachiShortDate } from '@/lib/dateUtils';
+import { getPrimaryUploadDir } from '@/lib/storageUtils';
 
 function sanitizeName(str) {
   if (!str) return '';
@@ -90,10 +91,8 @@ export async function POST(request) {
 
     const dateStr = customDate ? sanitizeName(customDate) : formatKarachiShortDate();
 
-    // Target directory: public/uploads/[PO|DC|Invoice] or custom UPLOAD_DIR
-    const baseUploadDir = process.env.UPLOAD_DIR 
-      ? path.resolve(process.env.UPLOAD_DIR) 
-      : path.join(process.cwd(), 'public', 'uploads');
+    // Target directory: Primary persistent directory (survives redeployments)
+    const baseUploadDir = getPrimaryUploadDir();
     const uploadDir = path.join(baseUploadDir, subFolder);
     await mkdir(uploadDir, { recursive: true });
 
@@ -114,6 +113,17 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
+
+    // Also mirror to local public/uploads for direct Next.js static asset fallback
+    const localDir = path.join(process.cwd(), 'public', 'uploads', subFolder);
+    if (uploadDir !== localDir) {
+      try {
+        await mkdir(localDir, { recursive: true });
+        await writeFile(path.join(localDir, filename), buffer);
+      } catch (e) {
+        // non-blocking
+      }
+    }
 
     const publicPath = `/uploads/${subFolder}/${filename}`;
 

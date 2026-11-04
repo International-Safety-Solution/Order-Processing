@@ -906,6 +906,13 @@ export default function StaffDashboard() {
                                               src={getSafeFileUrl(path)}
                                               alt={`DC ${idx + 1}`}
                                               className="w-14 h-14 object-cover hover:scale-105 transition-transform"
+                                              onError={(e) => {
+                                                if (!e.currentTarget.dataset.retried) {
+                                                  e.currentTarget.dataset.retried = 'true';
+                                                  const clean = path.startsWith('/') ? path : '/' + path;
+                                                  e.currentTarget.src = clean;
+                                                }
+                                              }}
                                             />
                                             <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5">
                                               DC #{idx + 1}
