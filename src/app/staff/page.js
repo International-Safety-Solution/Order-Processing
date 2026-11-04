@@ -146,7 +146,8 @@ export default function StaffDashboard() {
       const ordersRes = await fetch('/api/orders');
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
-        setOrders(ordersData);
+        const sorted = Array.isArray(ordersData) ? [...ordersData].sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)) : [];
+        setOrders(sorted);
       }
 
       // 3. Fetch settings

@@ -35,11 +35,14 @@ export async function GET() {
         LEFT JOIN users u2 ON o.assigned_staff_2_id = u2.id
         LEFT JOIN users u3 ON o.assigned_staff_3_id = u3.id
         LEFT JOIN users uc ON o.created_by_id = uc.id
-        ORDER BY o.id DESC
+        ORDER BY o.id ASC
       `);
     } else {
       // JSON mock database fallback handles joining inside lib/db.js query helper
       orders = await query('SELECT * FROM orders');
+      if (Array.isArray(orders)) {
+        orders.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
+      }
     }
 
     return Response.json(orders);

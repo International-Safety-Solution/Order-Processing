@@ -50,7 +50,7 @@ export async function GET() {
         LEFT JOIN clients c ON o.client_id = c.id
         LEFT JOIN users uc ON o.created_by_id = uc.id
         WHERE (${conditions.join(' OR ')})
-        ORDER BY o.id DESC
+        ORDER BY o.id ASC
       `;
       orders = await query(sql, queryParams);
     } else {
@@ -63,6 +63,7 @@ export async function GET() {
           (permissions.phases?.logistics && o.assigned_staff_3_id === id)
         );
       });
+      orders.sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0));
     }
 
     return Response.json(orders);

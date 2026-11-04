@@ -39,7 +39,7 @@ export default function AdminDashboard() {
 
   // Table Sorting State (Numeric: Low/High, Alphabets: A-Z / Z-A)
   const [sortField, setSortField] = useState('id');
-  const [sortDirection, setSortDirection] = useState('desc'); // High to Low default
+  const [sortDirection, setSortDirection] = useState('asc'); // Low to High default (1, 2, 3...)
 
   const handleExecuteReopenStage = async () => {
     if (!selectedOrder || !confirmReopenModal.stage) return;
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
-      setSortDirection(field === 'id' ? 'desc' : 'asc');
+      setSortDirection('asc');
     }
   };
 

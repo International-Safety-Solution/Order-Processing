@@ -101,15 +101,14 @@ export default function ClientOrders() {
 
   // Table Sorting State (Numeric: Low/High, Alphabets: A-Z / Z-A)
   const [sortField, setSortField] = useState('id');
-  const [sortDirection, setSortDirection] = useState('desc'); // High to Low default
+  const [sortDirection, setSortDirection] = useState('asc'); // Low to High default (1, 2, 3...)
 
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
     } else {
       setSortField(field);
-      // id & qty default to 'desc' (high to low), alphabetical fields to 'asc' (A to Z)
-      setSortDirection(field === 'id' || field === 'qty' ? 'desc' : 'asc');
+      setSortDirection('asc');
     }
   };
 
