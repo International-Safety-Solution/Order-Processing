@@ -566,7 +566,7 @@ export default function ClientManagement() {
                 {processedClients.map((client, index) => (
                   <tr key={client.id} className="hover:bg-zinc-50/70 transition-colors">
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="text-xs font-semibold text-zinc-500 bg-zinc-100 border border-zinc-200 px-2.5 py-0.5 rounded-md">
+                      <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-0.5 text-xs font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md">
                         {index + 1}
                       </span>
                     </td>

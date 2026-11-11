@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import OrderDocumentDropdown from '@/components/OrderDocumentDropdown';
+import SearchableSelect from '@/components/SearchableSelect';
 import { getSafeFileUrl } from '@/lib/fileUtils';
 
 // Helper to convert images to WebP on the client side before upload
@@ -887,7 +888,9 @@ export default function ClientOrders() {
                   {/* TOP ROW: ID + Client name + phone */}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded shrink-0">#{order.id}</span>
+                      <span className="inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-[10px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md shrink-0">
+                        {order.id}
+                      </span>
                       <p className="font-bold text-sm text-zinc-950 truncate">{order.client_name}</p>
                     </div>
                     <p className="text-[10px] text-zinc-400 mt-0.5 pl-0.5">{order.client_phone}</p>
@@ -1125,7 +1128,11 @@ export default function ClientOrders() {
                     return (
                       <tr key={order.id} className="hover:bg-zinc-50/80 transition-colors group/row">
                         {/* ID */}
-                        <td className="whitespace-nowrap px-4 py-3.5 font-bold text-zinc-950">#{order.id}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-0.5 text-xs font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md">
+                            {order.id}
+                          </span>
+                        </td>
 
                         {/* Client / Type */}
                         <td className="px-4 py-3.5">
@@ -1340,31 +1347,23 @@ export default function ClientOrders() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select Client <span className="text-red-500">*</span></label>
-                      <select
+                      <SearchableSelect
                         required
                         value={clientId}
-                        onChange={(e) => setClientId(e.target.value)}
-                        className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange"
-                      >
-                        <option value="">-- Choose Client --</option>
-                        {clients.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => setClientId(val)}
+                        options={clients}
+                        placeholder="-- Choose Client --"
+                      />
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Order Type <span className="text-red-500">*</span></label>
-                      <select
+                      <SearchableSelect
                         required
                         value={orderTypeId}
-                        onChange={(e) => setOrderTypeId(e.target.value)}
-                        className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange"
-                      >
-                        <option value="">-- Choose Type --</option>
-                        {orderTypes.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => setOrderTypeId(val)}
+                        options={orderTypes}
+                        placeholder="-- Choose Type --"
+                      />
                     </div>
                   </div>
 
@@ -1650,32 +1649,24 @@ export default function ClientOrders() {
                   {/* Select Client & Select Order Type Side by Side */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select Client</label>
-                      <select
+                      <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Select Client <span className="text-red-500">*</span></label>
+                      <SearchableSelect
                         required
                         value={clientId}
-                        onChange={(e) => setClientId(e.target.value)}
-                        className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange"
-                      >
-                        <option value="">-- Choose Client --</option>
-                        {clients.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => setClientId(val)}
+                        options={clients}
+                        placeholder="-- Choose Client --"
+                      />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Order Type</label>
-                      <select
+                      <label className="block text-xs font-semibold text-zinc-700 mb-1.5">Order Type <span className="text-red-500">*</span></label>
+                      <SearchableSelect
                         required
                         value={orderTypeId}
-                        onChange={(e) => setOrderTypeId(e.target.value)}
-                        className="block w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange focus:border-brand-orange"
-                      >
-                        <option value="">-- Choose Type --</option>
-                        {orderTypes.map(t => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
+                        onChange={(val) => setOrderTypeId(val)}
+                        options={orderTypes}
+                        placeholder="-- Choose Type --"
+                      />
                     </div>
                   </div>
 

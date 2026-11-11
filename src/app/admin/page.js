@@ -520,7 +520,9 @@ export default function AdminDashboard() {
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono font-bold bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded">#{order.id}</span>
+                        <span className="inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-[10px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md">
+                          {order.id}
+                        </span>
                         {getStatusBadge(order.status)}
                       </div>
                       <p className="font-bold text-zinc-950 mt-1.5">{order.client_name}</p>
@@ -664,7 +666,11 @@ export default function AdminDashboard() {
 
                     return (
                       <tr key={order.id} className="hover:bg-zinc-50/80 transition-colors group/row">
-                        <td className="whitespace-nowrap px-4 py-3.5 font-bold text-zinc-950">#{order.id}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <span className="inline-flex items-center justify-center min-w-[28px] px-2.5 py-0.5 text-xs font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md">
+                            {order.id}
+                          </span>
+                        </td>
                         <td className="px-4 py-3.5">
                           <div className="font-semibold text-zinc-950">{order.client_name}</div>
                           <div className="text-xs text-zinc-400 mt-0.5">{order.client_phone}</div>

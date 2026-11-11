@@ -9,7 +9,7 @@ export async function sendSystemEmail(templateKey, templateParams) {
     const templates = await query('SELECT * FROM email_templates WHERE template_key = ?', [templateKey]);
     if (!templates || templates.length === 0) {
       console.log(`Mailer: Template not found for key: ${templateKey}`);
-      return;
+      return { success: false, error: `Template not found for key: ${templateKey}`, sentRecipients: [], failedRecipients: [] };
     }
     const template = templates[0];
 
@@ -17,7 +17,7 @@ export async function sendSystemEmail(templateKey, templateParams) {
     const settingsRows = await query('SELECT * FROM settings WHERE id = 1');
     if (!settingsRows || settingsRows.length === 0) {
       console.log('Mailer: Settings record not found.');
-      return;
+      return { success: false, error: 'Settings record not found', sentRecipients: [], failedRecipients: [] };
     }
     const settings = settingsRows[0];
 
@@ -31,7 +31,7 @@ export async function sendSystemEmail(templateKey, templateParams) {
 
     if (!host || !senderEmail) {
       console.log('Mailer: SMTP host or sender email not configured in Settings or Env.');
-      return;
+      return { success: false, error: 'SMTP host or sender email not configured', sentRecipients: [], failedRecipients: [] };
     }
 
     // 3. Resolve template subject and body variables
@@ -95,44 +95,57 @@ export async function sendSystemEmail(templateKey, templateParams) {
     const uniqueRecipients = [...new Set(recipients.filter(Boolean))];
     if (uniqueRecipients.length === 0) {
       console.log(`Mailer: No recipients enabled for template key: ${templateKey}`);
-      return;
+      return { success: false, error: `No recipients enabled for template key: ${templateKey}`, sentRecipients: [], failedRecipients: [] };
     }
 
     console.log(`Mailer: Sending template "${templateKey}" (${template.name}) to:`, uniqueRecipients);
 
+    const sentRecipients = [];
+    const failedRecipients = [];
+
     // 5. Send SMTP email to each recipient
     for (const recipient of uniqueRecipients) {
-      await sendSMTPSocketMessage({
-        host,
-        port,
-        user,
-        pass,
-        secure,
-        senderEmail,
-        senderName,
-        recipientEmail: recipient,
-        subject,
-        body
-      }).then(async () => {
+      try {
+        await sendSMTPSocketMessage({
+          host,
+          port,
+          user,
+          pass,
+          secure,
+          senderEmail,
+          senderName,
+          recipientEmail: recipient,
+          subject,
+          body
+        });
         console.log(`Mailer: Successfully sent to ${recipient}`);
+        sentRecipients.push(recipient);
         try {
           await query(
             'INSERT INTO email_logs (recipient, subject, template_key, status) VALUES (?, ?, ?, ?)',
             [recipient, subject, templateKey, 'SENT']
           );
         } catch (e) {}
-      }).catch(async (err) => {
+      } catch (err) {
         console.error(`Mailer: Failed to send email to ${recipient}:`, err.message);
+        failedRecipients.push({ email: recipient, error: err.message });
         try {
           await query(
             'INSERT INTO email_logs (recipient, subject, template_key, status, error_message) VALUES (?, ?, ?, ?, ?)',
             [recipient, subject, templateKey, 'FAILED', err.message]
           );
         } catch (e) {}
-      });
+      }
     }
+
+    return {
+      success: failedRecipients.length === 0,
+      sentRecipients,
+      failedRecipients
+    };
   } catch (err) {
     console.error('Mailer: Error during sendSystemEmail processing:', err);
+    return { success: false, error: err.message, sentRecipients: [], failedRecipients: [] };
   }
 }
 

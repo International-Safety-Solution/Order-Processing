@@ -710,8 +710,8 @@ export default function StaffDashboard() {
                       <div className="relative flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
-                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded bg-black/20 text-white/90 font-mono">
-                              #{order.id}
+                            <span className="inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-[10px] font-bold text-zinc-700 bg-white/95 border border-white/50 rounded-md shadow-xs">
+                              {order.id}
                             </span>
                             {order.order_type_name && (
                               <span className="text-[9px] font-semibold px-2 py-0.5 rounded bg-white/15 text-white/80 truncate max-w-[120px]">
@@ -1332,8 +1332,8 @@ export default function StaffDashboard() {
                           {order.client_name}
                         </span>
                         <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                          <span className="text-[9px] font-mono font-bold bg-zinc-100 text-zinc-500 px-1.5 py-0.5 rounded">
-                            #{order.id}
+                          <span className="inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-[10px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md">
+                            {order.id}
                           </span>
                           {order.order_type_name && (
                             <span className="text-[9px] font-bold px-1.5 py-0.5 bg-orange-50 text-brand-orange rounded border border-orange-100">

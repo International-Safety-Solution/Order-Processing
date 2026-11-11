@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Building2, Users, FolderPlus, LogOut, LayoutDashboard,
   UserSquare2, Layers, ChevronDown, ChevronUp,
-  User, Key, Lock, Mail, UserCheck, AlertCircle, CheckCircle2, X, Menu, Settings
+  User, Key, Lock, Mail, UserCheck, AlertCircle, CheckCircle2, X, Menu, Settings, RotateCcw
 } from 'lucide-react';
 
 export default function AdminSidebar({ user }) {
@@ -149,6 +149,7 @@ export default function AdminSidebar({ user }) {
   const showOrderTypes = isAdmin || user?.permissions?.order_types?.view;
   const showStaff = isAdmin;
   const showClients = isAdmin || !!user?.permissions?.client_management?.view;
+  const showRefilling = isAdmin || !!user?.permissions?.order_processing?.view;
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full overflow-hidden">
@@ -271,6 +272,20 @@ export default function AdminSidebar({ user }) {
           >
             <UserSquare2 className={`h-4.5 w-4.5 ${pathname === '/admin/clients' ? 'text-white' : 'text-zinc-400'}`} />
             <span>Client Management</span>
+          </Link>
+        )}
+
+        {/* Refilling Follow Up */}
+        {showRefilling && (
+          <Link
+            href="/admin/refilling"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${pathname === '/admin/refilling'
+              ? 'bg-brand-orange text-white shadow-sm shadow-orange-500/20'
+              : 'text-zinc-650 hover:text-zinc-950 hover:bg-zinc-100 border border-transparent'
+              }`}
+          >
+            <RotateCcw className={`h-4.5 w-4.5 ${pathname === '/admin/refilling' ? 'text-white' : 'text-zinc-400'}`} />
+            <span>Refilling Follow Up</span>
           </Link>
         )}
 

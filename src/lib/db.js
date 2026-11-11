@@ -156,6 +156,20 @@ async function ensureDatabaseAndPool() {
         console.log('MySQL max_reupload_count column added to settings table.');
       }
 
+      // Check and add refilling_order_types column
+      const hasRefillingOrderTypes = columns.some(col => col.Field === 'refilling_order_types');
+      if (!hasRefillingOrderTypes) {
+        await pool.execute('ALTER TABLE settings ADD COLUMN refilling_order_types TEXT NULL');
+        console.log('MySQL refilling_order_types column added to settings table.');
+      }
+
+      // Check and add refilling_automation_rules column
+      const hasRefillingAutomation = columns.some(col => col.Field === 'refilling_automation_rules');
+      if (!hasRefillingAutomation) {
+        await pool.execute('ALTER TABLE settings ADD COLUMN refilling_automation_rules TEXT NULL');
+        console.log('MySQL refilling_automation_rules column added to settings table.');
+      }
+
       // Check and add SMTP columns
       const smtpColumns = ['smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_secure', 'smtp_sender_name', 'smtp_sender_email'];
       for (const col of smtpColumns) {
@@ -225,6 +239,16 @@ async function ensureDatabaseAndPool() {
           INSERT IGNORE INTO email_templates (template_key, name, subject, body, variables, notify_admin, notify_staff_1, notify_staff_2, notify_staff_3) VALUES 
           ('staff_registered', 'Staff Account Registered', 'Welcome to ISS Portal - Your Account Credentials', '<h3>Welcome [user_name],</h3><p>Your staff account has been created on the ISS Portal.</p><p><strong>Email:</strong> [user_email]</p><p><strong>Temporary Password:</strong> [temp_password]</p><p>Please log in to your account at [portal_url] and change your password on first login.</p>', 'user_name, user_email, temp_password, portal_url', 0, 0, 0, 0)
         `);
+      } catch (e) {}
+
+      // Guarantee refilling_reminder template is present on existing databases
+      try {
+        const defaultRefillingBody = '<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;"><div style="background-color: #ea580c; padding: 18px 24px; color: #ffffff;"><h2 style="margin: 0; font-size: 20px;">International Safety Solution</h2><p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">Fire Safety &amp; Equipment Maintenance Department</p></div><div style="padding: 24px;"><p style="font-size: 15px; margin-top: 0;">Dear <strong>[client_name]</strong>,</p><p style="font-size: 14px; color: #4b5563;">This is a safety reminder regarding your fire safety equipment under Order #<strong>[order_id]</strong>.</p><div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 18px 0;"><table style="width: 100%; font-size: 14px; border-collapse: collapse;"><tr><td style="padding: 6px 0; color: #64748b; width: 40%;"><strong>Order / Service:</strong></td><td style="padding: 6px 0; color: #0f172a; font-weight: 600;">[order_type]</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Quantity:</strong></td><td style="padding: 6px 0; color: #0f172a;">[qty] units</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Order Date:</strong></td><td style="padding: 6px 0; color: #0f172a;">[order_date]</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Expiry / Due Date:</strong></td><td style="padding: 6px 0; color: #dc2626; font-weight: bold;">[expiry_date]</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Days Remaining:</strong></td><td style="padding: 6px 0; color: #ea580c; font-weight: 600;">[days_left] days</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Alert Status:</strong></td><td style="padding: 6px 0;">[alert_badge]</td></tr></table></div><p style="font-size: 14px; color: #4b5563;">[scenario_text]</p><p style="font-size: 14px; color: #4b5563;">According to fire safety regulations and standards, all fire extinguishers must be professionally inspected, serviced, and refilled annually to ensure they function properly in an emergency.</p><p style="font-size: 14px; color: #4b5563;">Please contact us at your earliest convenience to arrange an on-site service, pickup, or refilling so your equipment remains fully compliant and operational.</p><div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;"><p style="margin: 0;"><strong>International Safety Solution (ISS)</strong></p><p style="margin: 2px 0;">Phone: 0321-7654321 / 0300-1234567</p><p style="margin: 2px 0;">Email: internationalsafetysolution@gmail.com</p></div></div></div>';
+        const refillingVars = 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url';
+        await pool.execute(`
+          INSERT IGNORE INTO email_templates (template_key, name, subject, body, variables, notify_admin, notify_staff_1, notify_staff_2, notify_staff_3) VALUES 
+          ('refilling_reminder', 'Fire Extinguisher Expiry & Refilling Reminder', 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])', ?, ?, 0, 0, 0, 0)
+        `, [defaultRefillingBody, refillingVars]);
       } catch (e) {}
 
       console.log('MySQL email_templates table verified/created.');
@@ -522,16 +546,47 @@ function handleMockQuery(sql, params) {
   // SELECT * FROM email_templates
   if (sqlNormalized.startsWith('select') && sqlNormalized.includes('from email_templates')) {
     const allVars = 'order_id, client_name, order_type, qty, po_no, deadline_date, receiver_name, courier_id, stage_number, buffer_time, completion_time';
-    db.email_templates = [
-      { id: 1, template_key: 'order_created', name: 'New Order Notification', subject: 'New Order #[order_id] Registered', body: '<h3>Dear [client_name],</h3><p>Your order #<strong>[order_id]</strong> has been registered on the portal.</p><p>Order Type: [order_type] | Quantity: [qty] | PO: [po_no]</p><p>Deadline: [deadline_date]</p><p>Please log in to your dashboard to review status.</p><p>Regards,<br>ISS Team</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
-      { id: 2, template_key: 'stage1_completed', name: 'Stage 1 Completed', subject: 'Order #[order_id] - Stage 1 (Delivery Challan) Completed', body: '<h3>Hello Accounts Department,</h3><p>Stage 1 has been completed for order #<strong>[order_id]</strong>. Received by: [receiver_name].</p><p>Invoice uploading is now pending for your action.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 0, notify_staff_2: 1, notify_staff_3: 0 },
-      { id: 3, template_key: 'stage2_completed', name: 'Stage 2 Completed', subject: 'Order #[order_id] - Stage 2 (Invoice) Completed', body: '<h3>Hello Logistics Department,</h3><p>Stage 2 has been completed for order #<strong>[order_id]</strong>.</p><p>Courier dispatch registration is now pending for your action.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 1 },
-      { id: 4, template_key: 'order_completed', name: 'Order Completed', subject: 'Order #[order_id] Completed & Dispatched', body: '<h3>Dear client [client_name],</h3><p>Your order #<strong>[order_id]</strong> is now fully complete.</p><p>Courier tracking ID: [courier_id].</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
-      { id: 5, template_key: 'reupload_requested', name: 'Task Reupload Request', subject: 'Reupload Required for Order #[order_id]', body: '<h3>Hello,</h3><p>A reupload request has been generated for order #<strong>[order_id]</strong>.</p><p>Please upload the corrected documents within the portal before the buffer timer expires.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
-      { id: 6, template_key: 'staff_registered', name: 'Staff Account Registered', subject: 'Welcome to ISS Portal - Your Account Credentials', body: '<h3>Welcome [user_name],</h3><p>Your staff account has been created on the ISS Portal.</p><p><strong>Email:</strong> [user_email]</p><p><strong>Temporary Password:</strong> [temp_password]</p><p>Please log in to your account at [portal_url] and change your password on first login.</p>', variables: 'user_name, user_email, temp_password, portal_url', notify_admin: 0, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 0 }
-    ];
-    writeMockDb(db);
-    return db.email_templates;
+    const defaultRefillingBody = '<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;"><div style="background-color: #ea580c; padding: 18px 24px; color: #ffffff;"><h2 style="margin: 0; font-size: 20px;">International Safety Solution</h2><p style="margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;">Fire Safety &amp; Equipment Maintenance Department</p></div><div style="padding: 24px;"><p style="font-size: 15px; margin-top: 0;">Dear <strong>[client_name]</strong>,</p><p style="font-size: 14px; color: #4b5563;">This is a safety reminder regarding your fire safety equipment under Order #<strong>[order_id]</strong>.</p><div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 18px 0;"><table style="width: 100%; font-size: 14px; border-collapse: collapse;"><tr><td style="padding: 6px 0; color: #64748b; width: 40%;"><strong>Order / Service:</strong></td><td style="padding: 6px 0; color: #0f172a; font-weight: 600;">[order_type]</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Quantity:</strong></td><td style="padding: 6px 0; color: #0f172a;">[qty] units</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Order Date:</strong></td><td style="padding: 6px 0; color: #0f172a;">[order_date]</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Expiry / Due Date:</strong></td><td style="padding: 6px 0; color: #dc2626; font-weight: bold;">[expiry_date]</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Days Remaining:</strong></td><td style="padding: 6px 0; color: #ea580c; font-weight: 600;">[days_left] days</td></tr><tr><td style="padding: 6px 0; color: #64748b;"><strong>Alert Status:</strong></td><td style="padding: 6px 0;">[alert_badge]</td></tr></table></div><p style="font-size: 14px; color: #4b5563;">[scenario_text]</p><p style="font-size: 14px; color: #4b5563;">According to fire safety regulations and standards, all fire extinguishers must be professionally inspected, serviced, and refilled annually to ensure they function properly in an emergency.</p><p style="font-size: 14px; color: #4b5563;">Please contact us at your earliest convenience to arrange an on-site service, pickup, or refilling so your equipment remains fully compliant and operational.</p><div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;"><p style="margin: 0;"><strong>International Safety Solution (ISS)</strong></p><p style="margin: 2px 0;">Phone: 0321-7654321 / 0300-1234567</p><p style="margin: 2px 0;">Email: internationalsafetysolution@gmail.com</p></div></div></div>';
+
+    if (!db.email_templates || db.email_templates.length === 0) {
+      db.email_templates = [
+        { id: 1, template_key: 'order_created', name: 'New Order Notification', subject: 'New Order #[order_id] Registered', body: '<h3>Dear [client_name],</h3><p>Your order #<strong>[order_id]</strong> has been registered on the portal.</p><p>Order Type: [order_type] | Quantity: [qty] | PO: [po_no]</p><p>Deadline: [deadline_date]</p><p>Please log in to your dashboard to review status.</p><p>Regards,<br>ISS Team</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
+        { id: 2, template_key: 'stage1_completed', name: 'Stage 1 Completed', subject: 'Order #[order_id] - Stage 1 (Delivery Challan) Completed', body: '<h3>Hello Accounts Department,</h3><p>Stage 1 has been completed for order #<strong>[order_id]</strong>. Received by: [receiver_name].</p><p>Invoice uploading is now pending for your action.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 0, notify_staff_2: 1, notify_staff_3: 0 },
+        { id: 3, template_key: 'stage2_completed', name: 'Stage 2 Completed', subject: 'Order #[order_id] - Stage 2 (Invoice) Completed', body: '<h3>Hello Logistics Department,</h3><p>Stage 2 has been completed for order #<strong>[order_id]</strong>.</p><p>Courier dispatch registration is now pending for your action.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 1 },
+        { id: 4, template_key: 'order_completed', name: 'Order Completed', subject: 'Order #[order_id] Completed & Dispatched', body: '<h3>Dear client [client_name],</h3><p>Your order #<strong>[order_id]</strong> is now fully complete.</p><p>Courier tracking ID: [courier_id].</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
+        { id: 5, template_key: 'reupload_requested', name: 'Task Reupload Request', subject: 'Reupload Required for Order #[order_id]', body: '<h3>Hello,</h3><p>A reupload request has been generated for order #<strong>[order_id]</strong>.</p><p>Please upload the corrected documents within the portal before the buffer timer expires.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
+        { id: 6, template_key: 'staff_registered', name: 'Staff Account Registered', subject: 'Welcome to ISS Portal - Your Account Credentials', body: '<h3>Welcome [user_name],</h3><p>Your staff account has been created on the ISS Portal.</p><p><strong>Email:</strong> [user_email]</p><p><strong>Temporary Password:</strong> [temp_password]</p><p>Please log in to your account at [portal_url] and change your password on first login.</p>', variables: 'user_name, user_email, temp_password, portal_url', notify_admin: 0, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 0 },
+        { id: 7, template_key: 'refilling_reminder', name: 'Fire Extinguisher Expiry & Refilling Reminder', subject: 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])', body: defaultRefillingBody, variables: 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url', notify_admin: 0, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 0 }
+      ];
+      writeMockDb(db);
+    } else {
+      const hasRefilling = db.email_templates.some(t => t.template_key === 'refilling_reminder');
+      if (!hasRefilling) {
+        db.email_templates.push({
+          id: db.email_templates.length + 1,
+          template_key: 'refilling_reminder',
+          name: 'Fire Extinguisher Expiry & Refilling Reminder',
+          subject: 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])',
+          body: defaultRefillingBody,
+          variables: 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url',
+          notify_admin: 0,
+          notify_staff_1: 0,
+          notify_staff_2: 0,
+          notify_staff_3: 0
+        });
+        writeMockDb(db);
+      }
+    }
+
+    let list = [...db.email_templates];
+    if (sqlNormalized.includes('where template_key = ?')) {
+      const key = params[0];
+      list = list.filter(t => t.template_key === key);
+    } else if (sqlNormalized.includes('where id = ?')) {
+      const id = parseInt(params[0]);
+      list = list.filter(t => t.id === id);
+    }
+    return list;
   }
 
   // SELECT * FROM settings
@@ -552,6 +607,14 @@ function handleMockQuery(sql, params) {
       }
       if (db.settings[0].max_reupload_count === undefined) {
         db.settings[0].max_reupload_count = 3;
+        modified = true;
+      }
+      if (db.settings[0].refilling_order_types === undefined) {
+        db.settings[0].refilling_order_types = '[]';
+        modified = true;
+      }
+      if (db.settings[0].refilling_automation_rules === undefined) {
+        db.settings[0].refilling_automation_rules = '[]';
         modified = true;
       }
     }
@@ -575,6 +638,7 @@ function handleMockQuery(sql, params) {
       return {
         ...order,
         client_name: client.name,
+        client_email: client.email || '',
         client_phone: client.phone,
         client_address: client.address,
         order_type_name: type.name || 'N/A',
@@ -937,6 +1001,34 @@ function handleMockQuery(sql, params) {
     if (!db.settings) db.settings = [];
     const idx = db.settings.findIndex(s => s.id === 1);
     
+    if (sqlNormalized.includes('refilling_order_types = ?')) {
+      if (idx !== -1) {
+        db.settings[idx].refilling_order_types = params[0];
+      } else {
+        db.settings.push({
+          id: 1,
+          app_name: 'ISS PORTAL',
+          refilling_order_types: params[0]
+        });
+      }
+      writeMockDb(db);
+      return { affectedRows: 1 };
+    }
+
+    if (sqlNormalized.includes('refilling_automation_rules = ?')) {
+      if (idx !== -1) {
+        db.settings[idx].refilling_automation_rules = params[0];
+      } else {
+        db.settings.push({
+          id: 1,
+          app_name: 'ISS PORTAL',
+          refilling_automation_rules: params[0]
+        });
+      }
+      writeMockDb(db);
+      return { affectedRows: 1 };
+    }
+
     if (sqlNormalized.includes('smtp_host = ?')) {
       if (idx !== -1) {
         db.settings[idx].smtp_host = params[0];
