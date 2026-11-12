@@ -885,7 +885,7 @@ export default function ClientOrders() {
               {filteredOrders.map((order) => (
                 <div key={order.id} className="p-4 space-y-3">
 
-                  {/* TOP ROW: ID + Client name + phone */}
+                  {/* TOP ROW: ID + Client name */}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-[10px] font-bold text-zinc-600 bg-zinc-100 border border-zinc-200 rounded-md shrink-0">
@@ -893,7 +893,6 @@ export default function ClientOrders() {
                       </span>
                       <p className="font-bold text-sm text-zinc-950 truncate">{order.client_name}</p>
                     </div>
-                    <p className="text-[10px] text-zinc-400 mt-0.5 pl-0.5">{order.client_phone}</p>
                   </div>
 
                   {/* BADGES ROW: Status + Order type + PO */}
@@ -1137,9 +1136,7 @@ export default function ClientOrders() {
                         {/* Client / Type */}
                         <td className="px-4 py-3.5">
                           <div className="font-semibold text-zinc-950">{order.client_name}</div>
-                          <div className="flex gap-2 items-center mt-0.5">
-                            <span className="text-[11px] text-zinc-400 font-medium">{order.client_phone}</span>
-                            <span className="h-1 w-1 bg-zinc-300 rounded-full" />
+                          <div className="flex gap-2 items-center mt-1">
                             <span className="px-1.5 py-0.5 bg-orange-50 border border-orange-100 text-brand-orange text-[9px] font-bold rounded">
                               {order.order_type_name || 'General Order'}
                             </span>

@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error(data.error || 'Failed to reopen stage');
 
       setConfirmReopenModal({ open: false, stage: null, clearFiles: false, loading: false });
-      
+
       // Update selectedOrder locally so modal reflects instantly
       if (confirmReopenModal.stage === 1) {
         setSelectedOrder(prev => ({
@@ -380,7 +380,7 @@ export default function AdminDashboard() {
               <Hourglass className="h-5 w-5 animate-pulse-orange" />
             </div>
             <div>
-              <p className="text-[9px] sm:text-[10px] font-bold uppercase text-zinc-400 tracking-widest leading-snug">Pending<br className="sm:hidden" /> Phases</p>
+              <p className="text-[9px] sm:text-[10px] font-bold uppercase text-zinc-400 tracking-widest leading-snug">Pending<br className="sm:hidden" /> Orders</p>
               <p className="text-2xl sm:text-3xl font-extrabold text-zinc-950 mt-0.5">{pendingOrders}</p>
             </div>
           </div>
@@ -432,7 +432,7 @@ export default function AdminDashboard() {
       <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
         {/* Table Controls */}
         <div className="p-4 lg:p-6 border-b border-zinc-200 flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 bg-zinc-50/50">
-          <h2 className="text-base lg:text-lg font-bold text-brand-black">Client Orders Registry</h2>
+          <h2 className="text-base lg:text-lg font-bold text-brand-black">Client Orders</h2>
           <div className="relative w-full sm:max-w-xs">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
             <input
@@ -454,7 +454,7 @@ export default function AdminDashboard() {
             className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer shrink-0 ${statusFilter === 'ALL'
               ? 'bg-zinc-950 text-white shadow-xs'
               : 'bg-white border border-zinc-200 text-zinc-650 hover:bg-zinc-100'
-            }`}
+              }`}
           >
             All ({totalOrders})
           </button>
@@ -464,7 +464,7 @@ export default function AdminDashboard() {
             className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer shrink-0 ${statusFilter === 'PENDING_TASK'
               ? 'bg-orange-600 text-white shadow-xs'
               : 'bg-white border border-orange-200 text-orange-700 hover:bg-orange-50'
-            }`}
+              }`}
           >
             Phase 1: Task ({pendingTaskCount})
           </button>
@@ -474,7 +474,7 @@ export default function AdminDashboard() {
             className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer shrink-0 ${statusFilter === 'PENDING_INVOICE'
               ? 'bg-amber-600 text-white shadow-xs'
               : 'bg-white border border-amber-200 text-amber-700 hover:bg-amber-50'
-            }`}
+              }`}
           >
             Phase 2: Invoice ({pendingInvoiceCount})
           </button>
@@ -484,7 +484,7 @@ export default function AdminDashboard() {
             className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer shrink-0 ${statusFilter === 'PENDING_COURIER'
               ? 'bg-sky-600 text-white shadow-xs'
               : 'bg-white border border-sky-200 text-sky-700 hover:bg-sky-50'
-            }`}
+              }`}
           >
             Phase 3: Courier ({pendingCourierCount})
           </button>
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
             className={`px-3 py-1 rounded-full font-semibold transition-all cursor-pointer shrink-0 ${statusFilter === 'COMPLETED'
               ? 'bg-emerald-600 text-white shadow-xs'
               : 'bg-white border border-emerald-200 text-emerald-700 hover:bg-emerald-50'
-            }`}
+              }`}
           >
             Completed ({completedOrders})
           </button>
@@ -552,7 +552,7 @@ export default function AdminDashboard() {
                 <thead className="bg-zinc-50 text-zinc-600 uppercase text-[10px] font-bold tracking-wider border-b border-zinc-200">
                   <tr>
                     {/* ID */}
-                    <th 
+                    <th
                       onClick={() => handleSort('id')}
                       className="whitespace-nowrap px-4 py-3.5 cursor-pointer select-none hover:bg-zinc-100 transition-colors group w-16"
                       title={sortField === 'id' ? (sortDirection === 'asc' ? 'Order ID: Low to High' : 'Order ID: High to Low') : 'Sort by Order ID'}
@@ -572,7 +572,7 @@ export default function AdminDashboard() {
                     </th>
 
                     {/* Client */}
-                    <th 
+                    <th
                       onClick={() => handleSort('client')}
                       className="whitespace-nowrap px-4 py-3.5 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
                       title={sortField === 'client' ? (sortDirection === 'asc' ? 'Client: A to Z' : 'Client: Z to A') : 'Sort by Client Name'}
@@ -592,7 +592,7 @@ export default function AdminDashboard() {
                     </th>
 
                     {/* Order Details */}
-                    <th 
+                    <th
                       onClick={() => handleSort('details')}
                       className="whitespace-nowrap px-4 py-3.5 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
                       title={sortField === 'details' ? (sortDirection === 'asc' ? 'Details: A to Z' : 'Details: Z to A') : 'Sort by Order Details'}
@@ -612,7 +612,7 @@ export default function AdminDashboard() {
                     </th>
 
                     {/* Current Status */}
-                    <th 
+                    <th
                       onClick={() => handleSort('status')}
                       className="whitespace-nowrap px-4 py-3.5 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
                       title={sortField === 'status' ? (sortDirection === 'asc' ? 'Status: A to Z' : 'Status: Z to A') : 'Sort by Status'}
@@ -632,7 +632,7 @@ export default function AdminDashboard() {
                     </th>
 
                     {/* Assigned Team */}
-                    <th 
+                    <th
                       onClick={() => handleSort('team')}
                       className="whitespace-nowrap px-4 py-3.5 cursor-pointer select-none hover:bg-zinc-100 transition-colors group"
                       title={sortField === 'team' ? (sortDirection === 'asc' ? 'Team: A to Z' : 'Team: Z to A') : 'Sort by Assigned Staff'}
@@ -660,8 +660,8 @@ export default function AdminDashboard() {
                 <tbody className="divide-y divide-zinc-100 bg-white">
                   {filteredOrders.map((order, rowIdx) => {
                     const isUnassigned = (!order.staff_1_name || order.staff_1_name.includes('Unassigned')) &&
-                                         (!order.staff_2_name || order.staff_2_name.includes('Unassigned')) &&
-                                         (!order.staff_3_name || order.staff_3_name.includes('Unassigned'));
+                      (!order.staff_2_name || order.staff_2_name.includes('Unassigned')) &&
+                      (!order.staff_3_name || order.staff_3_name.includes('Unassigned'));
                     const openUpwards = filteredOrders.length > 3 && rowIdx >= filteredOrders.length - 2;
 
                     return (
@@ -683,11 +683,10 @@ export default function AdminDashboard() {
                           <div className="relative group/crew inline-block">
                             <button
                               type="button"
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
-                                isUnassigned 
-                                  ? 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:bg-zinc-100' 
-                                  : 'bg-orange-50/70 border-orange-200/80 text-brand-orange hover:bg-orange-100/70'
-                              }`}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${isUnassigned
+                                ? 'bg-zinc-50 border-zinc-200 text-zinc-500 hover:bg-zinc-100'
+                                : 'bg-orange-50/70 border-orange-200/80 text-brand-orange hover:bg-orange-100/70'
+                                }`}
                             >
                               <Users className="h-3.5 w-3.5 shrink-0" />
                               <span className="whitespace-nowrap font-medium">
@@ -697,11 +696,10 @@ export default function AdminDashboard() {
                             </button>
 
                             {/* Floating Tooltip Card */}
-                            <div className={`pointer-events-none opacity-0 group-hover/crew:opacity-100 group-hover/crew:pointer-events-auto transition-all duration-200 delay-75 absolute right-0 sm:left-0 z-50 w-64 bg-zinc-950 text-white p-3 rounded-xl shadow-2xl border border-zinc-800 text-xs ${
-                              openUpwards 
-                                ? 'bottom-full mb-2.5 after:absolute after:-bottom-2.5 after:left-0 after:w-full after:h-2.5 after:content-[\'\']' 
-                                : 'top-full mt-2.5 before:absolute before:-top-2.5 before:left-0 before:w-full before:h-2.5 before:content-[\'\']'
-                            }`}>
+                            <div className={`pointer-events-none opacity-0 group-hover/crew:opacity-100 group-hover/crew:pointer-events-auto transition-all duration-200 delay-75 absolute right-0 sm:left-0 z-50 w-64 bg-zinc-950 text-white p-3 rounded-xl shadow-2xl border border-zinc-800 text-xs ${openUpwards
+                              ? 'bottom-full mb-2.5 after:absolute after:-bottom-2.5 after:left-0 after:w-full after:h-2.5 after:content-[\'\']'
+                              : 'top-full mt-2.5 before:absolute before:-top-2.5 before:left-0 before:w-full before:h-2.5 before:content-[\'\']'
+                              }`}>
                               <div className="font-bold text-[10px] text-zinc-400 uppercase tracking-wider mb-2 border-b border-zinc-800 pb-1.5 flex items-center justify-between">
                                 <span>Assigned Workflow Crew</span>
                                 <span className="text-brand-orange text-[9px] font-mono">Phase Matrix</span>
@@ -1061,11 +1059,11 @@ export default function AdminDashboard() {
         </div>
       )}
 
-            {/* Landscape DC Upload History Modal */}
+      {/* Landscape DC Upload History Modal */}
       {showDcHistoryModal && selectedOrder && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 z-[70] animate-fade-in">
           <div className="bg-white border border-zinc-200 rounded-2xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
-            
+
             {/* Modal Header */}
             <div className="bg-zinc-950 text-white p-5 flex justify-between items-center shrink-0">
               <div className="flex items-center gap-3">
@@ -1153,7 +1151,7 @@ export default function AdminDashboard() {
                         : isReupload
                           ? 'bg-blue-50 text-blue-800 border-blue-300 ring-1 ring-blue-200'
                           : 'bg-emerald-50 text-emerald-800 border-emerald-300 ring-1 ring-emerald-200';
-                      
+
                       const cardAccent = isDraft
                         ? 'border-amber-300/80 shadow-amber-500/5'
                         : isReupload
@@ -1164,7 +1162,7 @@ export default function AdminDashboard() {
                         <div key={bIdx} className="flex items-center gap-4">
                           {/* Batch Card in Landscape Flow */}
                           <div className={`w-[320px] sm:w-[350px] shrink-0 bg-white border-2 ${cardAccent} rounded-2xl p-4 shadow-md flex flex-col justify-between hover:shadow-lg transition-all`}>
-                            
+
                             {/* Batch Card Header */}
                             <div>
                               <div className="flex items-start justify-between gap-2 pb-3 border-b border-zinc-100">
@@ -1311,7 +1309,7 @@ export default function AdminDashboard() {
         </div>
       )}
 
-            {/* Confirm Reopen Stage Modal */}
+      {/* Confirm Reopen Stage Modal */}
       {confirmReopenModal.open && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 backdrop-blur-xs p-4 animate-fade-in">
           <div className="bg-white border border-zinc-200 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-scale-up space-y-4">
@@ -1461,23 +1459,23 @@ export default function AdminDashboard() {
 
       {/* Image Preview Modal */}
       {previewImageUrl && (
-        <div 
+        <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 transition-all duration-300 animate-fade-in"
           onClick={() => setPreviewImageUrl(null)}
         >
           <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center justify-center">
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); setPreviewImageUrl(null); }}
               className="absolute -top-12 right-0 bg-white/10 hover:bg-white/20 text-white rounded-full p-2 h-10 w-10 flex items-center justify-center text-lg font-bold shadow-lg transition-colors cursor-pointer"
               title="Close Preview"
             >
               ✕
             </button>
-            <img 
-              src={previewImageUrl} 
-              alt="Preview" 
-              onClick={(e) => e.stopPropagation()} 
-              className="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl border border-white/10 animate-scale-up" 
+            <img
+              src={previewImageUrl}
+              alt="Preview"
+              onClick={(e) => e.stopPropagation()}
+              className="max-w-full max-h-[80vh] rounded-xl object-contain shadow-2xl border border-white/10 animate-scale-up"
             />
           </div>
         </div>

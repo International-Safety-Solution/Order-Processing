@@ -7,46 +7,6 @@
       "name": "System Administrator",
       "role": "ADMIN",
       "designation": null
-    },
-    {
-      "id": 2,
-      "email": "task@company.com",
-      "password": "password123",
-      "name": "Zahid Khan (Task)",
-      "role": "STAFF",
-      "designation": "TASK_COMPLETION",
-      "permissions": null,
-      "permission_scopes": null
-    },
-    {
-      "id": 3,
-      "email": "admin@company.com",
-      "password": "password123",
-      "name": "Admin User",
-      "role": "ADMIN",
-      "designation": null,
-      "permissions": null,
-      "permission_scopes": null
-    },
-    {
-      "id": 4,
-      "email": "invoice@company.com",
-      "password": "password123",
-      "name": "Maria Ali (Accounts)",
-      "role": "STAFF",
-      "designation": "INVOICE_CREATION",
-      "permissions": null,
-      "permission_scopes": null
-    },
-    {
-      "id": 5,
-      "email": "courier@company.com",
-      "password": "password123",
-      "name": "Sajid Ahmed (Logistics)",
-      "role": "STAFF",
-      "designation": "INVOICE_COURIER",
-      "permissions": null,
-      "permission_scopes": null
     }
   ],
   "clients": [
@@ -304,7 +264,7 @@
     {
       "id": 7,
       "template_key": "refilling_reminder",
-      "name": "Fire Extinguisher Expiry & Refilling Reminder",
+      "name": "Refilling Follow Up",
       "subject": "Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])",
       "body": "<div style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;\"><div style=\"background-color: #ea580c; padding: 18px 24px; color: #ffffff;\"><h2 style=\"margin: 0; font-size: 20px;\">International Safety Solution</h2><p style=\"margin: 4px 0 0 0; font-size: 13px; opacity: 0.9;\">Fire Safety &amp; Equipment Maintenance Department</p></div><div style=\"padding: 24px;\"><p style=\"font-size: 15px; margin-top: 0;\">Dear <strong>[client_name]</strong>,</p><p style=\"font-size: 14px; color: #4b5563;\">This is a safety reminder regarding your fire safety equipment under Order #<strong>[order_id]</strong>.</p><div style=\"background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 16px; margin: 18px 0;\"><table style=\"width: 100%; font-size: 14px; border-collapse: collapse;\"><tr><td style=\"padding: 6px 0; color: #64748b; width: 40%;\"><strong>Order / Service:</strong></td><td style=\"padding: 6px 0; color: #0f172a; font-weight: 600;\">[order_type]</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Quantity:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">[qty] units</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Order Date:</strong></td><td style=\"padding: 6px 0; color: #0f172a;\">[order_date]</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Expiry / Due Date:</strong></td><td style=\"padding: 6px 0; color: #dc2626; font-weight: bold;\">[expiry_date]</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Days Remaining:</strong></td><td style=\"padding: 6px 0; color: #ea580c; font-weight: 600;\">[days_left] days</td></tr><tr><td style=\"padding: 6px 0; color: #64748b;\"><strong>Alert Status:</strong></td><td style=\"padding: 6px 0;\">[alert_badge]</td></tr></table></div><p style=\"font-size: 14px; color: #4b5563;\">[scenario_text]</p><p style=\"font-size: 14px; color: #4b5563;\">According to fire safety regulations and standards, all fire extinguishers must be professionally inspected, serviced, and refilled annually to ensure they function properly in an emergency.</p><p style=\"font-size: 14px; color: #4b5563;\">Please contact us at your earliest convenience to arrange an on-site service, pickup, or refilling so your equipment remains fully compliant and operational.</p><div style=\"margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 13px; color: #6b7280;\"><p style=\"margin: 0;\"><strong>International Safety Solution (ISS)</strong></p><p style=\"margin: 2px 0;\">Phone: 0321-7654321 / 0300-1234567</p><p style=\"margin: 2px 0;\">Email: internationalsafetysolution@gmail.com</p></div></div></div>",
       "variables": "client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url",

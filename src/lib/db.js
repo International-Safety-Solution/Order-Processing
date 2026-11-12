@@ -14,41 +14,6 @@ const initialMockData = {
       name: 'System Administrator',
       role: 'ADMIN',
       designation: null
-    },
-    {
-      id: 2,
-      email: 'admin@company.com',
-      password: 'password123',
-      name: 'Admin User',
-      role: 'ADMIN',
-      designation: null
-    },
-    {
-      id: 3,
-      email: 'task@company.com',
-      password: 'password123',
-      name: 'Zahid Khan (Task)',
-      role: 'STAFF',
-      designation: 'TASK_COMPLETION',
-      must_change_password: 0
-    },
-    {
-      id: 4,
-      email: 'invoice@company.com',
-      password: 'password123',
-      name: 'Maria Ali (Accounts)',
-      role: 'STAFF',
-      designation: 'INVOICE_CREATION',
-      must_change_password: 0
-    },
-    {
-      id: 5,
-      email: 'courier@company.com',
-      password: 'password123',
-      name: 'Sajid Ahmed (Logistics)',
-      role: 'STAFF',
-      designation: 'INVOICE_COURIER',
-      must_change_password: 0
     }
   ],
   clients: [],
@@ -112,7 +77,7 @@ async function ensureDatabaseAndPool() {
 
     global.mysqlPool = pool;
     console.log('MySQL Connection Pool created successfully.');
-    
+
     // Auto-create settings table if it doesn't exist
     try {
       await pool.execute(`
@@ -209,16 +174,16 @@ async function ensureDatabaseAndPool() {
       // Ensure columns exist on existing databases
       try {
         await pool.execute('ALTER TABLE email_templates ADD COLUMN notify_admin TINYINT NOT NULL DEFAULT 1');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE email_templates ADD COLUMN notify_staff_1 TINYINT NOT NULL DEFAULT 1');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE email_templates ADD COLUMN notify_staff_2 TINYINT NOT NULL DEFAULT 1');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE email_templates ADD COLUMN notify_staff_3 TINYINT NOT NULL DEFAULT 1');
-      } catch (e) {}
+      } catch (e) { }
 
       const [templateRows] = await pool.execute('SELECT COUNT(*) as count FROM email_templates');
       if (templateRows[0].count === 0) {
@@ -239,7 +204,7 @@ async function ensureDatabaseAndPool() {
           INSERT IGNORE INTO email_templates (template_key, name, subject, body, variables, notify_admin, notify_staff_1, notify_staff_2, notify_staff_3) VALUES 
           ('staff_registered', 'Staff Account Registered', 'Welcome to ISS Portal - Your Account Credentials', '<h3>Welcome [user_name],</h3><p>Your staff account has been created on the ISS Portal.</p><p><strong>Email:</strong> [user_email]</p><p><strong>Temporary Password:</strong> [temp_password]</p><p>Please log in to your account at [portal_url] and change your password on first login.</p>', 'user_name, user_email, temp_password, portal_url', 0, 0, 0, 0)
         `);
-      } catch (e) {}
+      } catch (e) { }
 
       // Guarantee refilling_reminder template is present on existing databases
       try {
@@ -247,9 +212,10 @@ async function ensureDatabaseAndPool() {
         const refillingVars = 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url';
         await pool.execute(`
           INSERT IGNORE INTO email_templates (template_key, name, subject, body, variables, notify_admin, notify_staff_1, notify_staff_2, notify_staff_3) VALUES 
-          ('refilling_reminder', 'Fire Extinguisher Expiry & Refilling Reminder', 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])', ?, ?, 0, 0, 0, 0)
+          ('refilling_reminder', 'Refilling Follow Up', 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])', ?, ?, 0, 0, 0, 0)
         `, [defaultRefillingBody, refillingVars]);
-      } catch (e) {}
+        await pool.execute("UPDATE email_templates SET name = 'Refilling Follow Up' WHERE template_key = 'refilling_reminder'");
+      } catch (e) { }
 
       console.log('MySQL email_templates table verified/created.');
 
@@ -269,10 +235,10 @@ async function ensureDatabaseAndPool() {
 
       try {
         await pool.execute('ALTER TABLE users ADD COLUMN must_change_password TINYINT NOT NULL DEFAULT 0');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE users ADD COLUMN permission_scopes TEXT NULL');
-      } catch (e) {}
+      } catch (e) { }
 
       // Auto-create clients table
       await pool.execute(`
@@ -287,13 +253,13 @@ async function ensureDatabaseAndPool() {
 
       try {
         await pool.execute('ALTER TABLE clients MODIFY COLUMN email VARCHAR(255) NULL');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE clients MODIFY COLUMN phone VARCHAR(100) NULL');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE clients MODIFY COLUMN address TEXT NULL');
-      } catch (e) {}
+      } catch (e) { }
 
       // Auto-create order_types table
       await pool.execute(`
@@ -383,36 +349,24 @@ async function ensureDatabaseAndPool() {
 
       try {
         await pool.execute('ALTER TABLE orders ADD COLUMN stage1_upload_history TEXT NULL');
-      } catch (e) {}
+      } catch (e) { }
 
       try {
         await pool.execute('ALTER TABLE permission_scopes ADD COLUMN name VARCHAR(255) NULL');
-      } catch (e) {}
+      } catch (e) { }
       try {
         await pool.execute('ALTER TABLE permission_scopes ADD COLUMN permissions LONGTEXT NULL');
-      } catch (e) {}
+      } catch (e) { }
 
-      // Auto-seed default Admin and Staff demo accounts if missing
-      await pool.execute(
-        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
-        ['internationalsafetysolution@gmail.com', 'Admin@1236#', 'System Administrator', 'ADMIN', null]
-      );
-      await pool.execute(
-        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
-        ['admin@company.com', 'password123', 'Admin User', 'ADMIN', null]
-      );
-      await pool.execute(
-        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
-        ['task@company.com', 'password123', 'Zahid Khan (Task)', 'STAFF', 'TASK_COMPLETION']
-      );
-      await pool.execute(
-        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
-        ['invoice@company.com', 'password123', 'Maria Ali (Accounts)', 'STAFF', 'INVOICE_CREATION']
-      );
-      await pool.execute(
-        'INSERT IGNORE INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
-        ['courier@company.com', 'password123', 'Sajid Ahmed (Logistics)', 'STAFF', 'INVOICE_COURIER']
-      );
+      // Seed default System Administrator ONLY if users table is completely empty (first-time fresh install)
+      const [userCountRows] = await pool.execute('SELECT COUNT(*) as count FROM users');
+      const userCount = userCountRows && userCountRows[0] ? Number(userCountRows[0].count) : 0;
+      if (userCount === 0) {
+        await pool.execute(
+          'INSERT INTO users (email, password, name, role, designation, must_change_password) VALUES (?, ?, ?, ?, ?, 0)',
+          ['internationalsafetysolution@gmail.com', 'Admin@1236#', 'System Administrator', 'ADMIN', null]
+        );
+      }
 
       console.log('MySQL all tables (users, clients, orders, order_types, permission_scopes) verified/created.');
     } catch (e) {
@@ -461,7 +415,7 @@ const writeMockDb = (data) => {
 // Database interface
 export async function query(sql, params = []) {
   const activePool = await ensureDatabaseAndPool();
-  
+
   if (activePool) {
     try {
       const [results] = await activePool.execute(sql, params);
@@ -556,7 +510,7 @@ function handleMockQuery(sql, params) {
         { id: 4, template_key: 'order_completed', name: 'Order Completed', subject: 'Order #[order_id] Completed & Dispatched', body: '<h3>Dear client [client_name],</h3><p>Your order #<strong>[order_id]</strong> is now fully complete.</p><p>Courier tracking ID: [courier_id].</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
         { id: 5, template_key: 'reupload_requested', name: 'Task Reupload Request', subject: 'Reupload Required for Order #[order_id]', body: '<h3>Hello,</h3><p>A reupload request has been generated for order #<strong>[order_id]</strong>.</p><p>Please upload the corrected documents within the portal before the buffer timer expires.</p>', variables: allVars, notify_admin: 1, notify_staff_1: 1, notify_staff_2: 1, notify_staff_3: 1 },
         { id: 6, template_key: 'staff_registered', name: 'Staff Account Registered', subject: 'Welcome to ISS Portal - Your Account Credentials', body: '<h3>Welcome [user_name],</h3><p>Your staff account has been created on the ISS Portal.</p><p><strong>Email:</strong> [user_email]</p><p><strong>Temporary Password:</strong> [temp_password]</p><p>Please log in to your account at [portal_url] and change your password on first login.</p>', variables: 'user_name, user_email, temp_password, portal_url', notify_admin: 0, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 0 },
-        { id: 7, template_key: 'refilling_reminder', name: 'Fire Extinguisher Expiry & Refilling Reminder', subject: 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])', body: defaultRefillingBody, variables: 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url', notify_admin: 0, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 0 }
+        { id: 7, template_key: 'refilling_reminder', name: 'Refilling Follow Up', subject: 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])', body: defaultRefillingBody, variables: 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url', notify_admin: 0, notify_staff_1: 0, notify_staff_2: 0, notify_staff_3: 0 }
       ];
       writeMockDb(db);
     } else {
@@ -565,7 +519,7 @@ function handleMockQuery(sql, params) {
         db.email_templates.push({
           id: db.email_templates.length + 1,
           template_key: 'refilling_reminder',
-          name: 'Fire Extinguisher Expiry & Refilling Reminder',
+          name: 'Refilling Follow Up',
           subject: 'Urgent Reminder: Fire Extinguisher Refilling / Inspection Due - [client_name] (Order #[order_id])',
           body: defaultRefillingBody,
           variables: 'client_name, order_id, order_type, qty, order_date, expiry_date, days_left, alert_badge, scenario_text, portal_url',
@@ -1000,7 +954,7 @@ function handleMockQuery(sql, params) {
   if (sqlNormalized.startsWith('update settings')) {
     if (!db.settings) db.settings = [];
     const idx = db.settings.findIndex(s => s.id === 1);
-    
+
     if (sqlNormalized.includes('refilling_order_types = ?')) {
       if (idx !== -1) {
         db.settings[idx].refilling_order_types = params[0];

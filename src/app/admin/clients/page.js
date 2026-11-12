@@ -1,97 +1,170 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   UserSquare2, UserPlus, Phone, Mail, MapPin, CheckCircle2, AlertCircle, 
   RefreshCw, Pencil, Trash2, ShieldAlert, List, LayoutGrid, Search, 
-  ArrowUpDown, ArrowUp, ArrowDown, Copy, Check, Clock, PackageCheck, Package 
+  ArrowUpDown, ArrowUp, ArrowDown, Copy, Check, Clock, PackageCheck, Package,
+  Contact 
 } from 'lucide-react';
 
-function HoverPopover({
-  icon: Icon,
-  title,
-  value,
-  iconColor = 'text-brand-orange',
-  badgeBg = 'bg-orange-50 hover:bg-orange-100 text-brand-orange border-orange-200/80',
-  width = 'w-64',
-  isFirstRow = false,
-  align = 'center'
+function ContactInfoPopover({
+  phone,
+  email,
+  address
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0, openUpwards: false });
+  const [copiedKey, setCopiedKey] = useState(null); // 'phone' | 'email' | 'address' | null
+
+  const buttonRef = useRef(null);
+  const popoverRef = useRef(null);
   const timerRef = useRef(null);
+  const copyTimerRef = useRef(null);
 
-  if (!value || !value.toString().trim()) {
-    return <span className="text-zinc-350 font-medium select-none text-xs">—</span>;
-  }
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const valStr = value.toString().trim();
+  const phoneStr = phone ? phone.toString().trim() : '';
+  const emailStr = email ? email.toString().trim() : '';
+  const addressStr = address ? address.toString().trim() : '';
+
+  const hasAnyInfo = Boolean(phoneStr || emailStr || addressStr);
+
+  const updatePosition = () => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUpwards = spaceBelow < 260 && rect.top > spaceBelow;
+
+    const popoverWidth = 340;
+    let calculatedLeft = rect.right + window.scrollX - popoverWidth;
+    if (calculatedLeft < 10) calculatedLeft = 10;
+
+    setCoords({
+      top: openUpwards 
+        ? rect.top + window.scrollY - 8 
+        : rect.bottom + window.scrollY + 8,
+      left: calculatedLeft,
+      openUpwards
+    });
+  };
 
   const handleMouseEnter = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    updatePosition();
     setIsOpen(true);
   };
 
   const handleMouseLeave = () => {
     timerRef.current = setTimeout(() => {
       setIsOpen(false);
-    }, 300);
+    }, 250);
   };
 
-  const handleCopy = (e) => {
+  const handleToggleClick = (e) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(valStr);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (!isOpen) {
+      updatePosition();
+    }
+    setIsOpen(prev => !prev);
   };
 
-  let alignClass = 'left-1/2 -translate-x-1/2';
-  let arrowClass = 'left-1/2 -translate-x-1/2';
-  if (align === 'left') {
-    alignClass = 'left-0';
-    arrowClass = 'left-4';
-  } else if (align === 'right') {
-    alignClass = 'right-0';
-    arrowClass = 'right-4';
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleScrollOrResize = () => {
+      updatePosition();
+    };
+
+    const handleClickOutside = (e) => {
+      if (
+        buttonRef.current && !buttonRef.current.contains(e.target) &&
+        popoverRef.current && !popoverRef.current.contains(e.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+    document.addEventListener('mousedown', handleClickOutside);
+
+    return () => {
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  const handleCopy = (text, key, e) => {
+    e.stopPropagation();
+    if (!text) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    setCopiedKey(key);
+    copyTimerRef.current = setTimeout(() => {
+      setCopiedKey(null);
+    }, 2000);
+  };
+
+  if (!hasAnyInfo) {
+    return <span className="text-zinc-350 font-medium select-none text-xs">—</span>;
   }
 
-  const positionClass = isFirstRow ? 'top-full mt-2' : 'bottom-full mb-2';
-
-  return (
-    <div 
-      className="relative inline-flex items-center justify-center"
+  const popoverContent = (
+    <div
+      ref={popoverRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      style={{
+        position: 'absolute',
+        top: `${coords.top}px`,
+        left: `${coords.left}px`,
+        zIndex: 99999
+      }}
+      className={`w-[340px] p-3.5 bg-white rounded-xl shadow-2xl border border-zinc-200 text-left animate-in fade-in zoom-in-95 duration-150 ${
+        coords.openUpwards ? '-translate-y-full' : ''
+      }`}
     >
-      <button
-        type="button"
-        onClick={handleCopy}
-        title={`Hover to view or click to copy ${title}`}
-        className={`p-2 rounded-lg transition-all duration-150 border cursor-pointer flex items-center justify-center group shadow-2xs hover:shadow-sm ${badgeBg}`}
-      >
-        <Icon className={`h-4 w-4 ${iconColor} transition-transform group-hover:scale-110`} />
-      </button>
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-zinc-100">
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-zinc-700 uppercase tracking-wider">
+          <Contact className="h-3.5 w-3.5 text-brand-orange" />
+          <span>Contact Information</span>
+        </div>
+      </div>
 
-      {isOpen && (
-        <div
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          className={`absolute ${positionClass} ${alignClass} ${width} p-3 bg-white rounded-xl shadow-2xl border border-zinc-200/90 text-left z-50 animate-in fade-in zoom-in-95 duration-150`}
-        >
-          <div className="flex items-center justify-between pb-1.5 mb-2 border-b border-zinc-100">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-              <Icon className={`h-3 w-3 ${iconColor}`} />
-              <span>{title}</span>
+      <div className="space-y-2">
+        {/* 1. PHONE */}
+        <div className="flex items-center justify-between gap-2.5 p-2 rounded-lg bg-zinc-50/80 border border-zinc-200/60 hover:bg-zinc-50 transition-colors">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-7 w-7 rounded-md bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <Phone className="h-3.5 w-3.5" />
             </div>
+            <div className="min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400">Phone</span>
+              <span className={`block text-xs font-semibold truncate ${phoneStr ? 'text-zinc-800' : 'text-zinc-400 font-normal italic'}`}>
+                {phoneStr || 'Not provided'}
+              </span>
+            </div>
+          </div>
+          {phoneStr && (
             <button
               type="button"
-              onClick={handleCopy}
-              className="flex items-center gap-1 text-[11px] font-semibold text-brand-orange hover:text-orange-700 bg-orange-50 hover:bg-orange-100 px-2 py-0.5 rounded transition-colors cursor-pointer"
+              onClick={(e) => handleCopy(phoneStr, 'phone', e)}
+              title="Copy Phone"
+              className="flex items-center gap-1 text-[10px] font-semibold text-brand-orange hover:text-orange-700 bg-white hover:bg-orange-50 border border-orange-200 px-2 py-1 rounded-md transition-colors cursor-pointer shrink-0 shadow-2xs"
             >
-              {copied ? (
+              {copiedKey === 'phone' ? (
                 <>
                   <Check className="h-3 w-3 text-emerald-600" />
-                  <span className="text-emerald-700">Copied!</span>
+                  <span className="text-emerald-700 font-bold">Copied!</span>
                 </>
               ) : (
                 <>
@@ -100,17 +173,109 @@ function HoverPopover({
                 </>
               )}
             </button>
-          </div>
-          <div className="text-xs text-zinc-800 font-medium select-text break-words leading-relaxed max-h-36 overflow-y-auto font-sans">
-            {valStr}
-          </div>
-          {isFirstRow ? (
-            <div className={`absolute bottom-full ${arrowClass} -mb-1 w-2 h-2 bg-white border-t border-l border-zinc-200 rotate-45`} />
-          ) : (
-            <div className={`absolute top-full ${arrowClass} -mt-1 w-2 h-2 bg-white border-b border-r border-zinc-200 rotate-45`} />
           )}
         </div>
+
+        {/* 2. EMAIL */}
+        <div className="flex items-center justify-between gap-2.5 p-2 rounded-lg bg-zinc-50/80 border border-zinc-200/60 hover:bg-zinc-50 transition-colors">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-7 w-7 rounded-md bg-sky-50 border border-sky-200/70 text-sky-600 flex items-center justify-center shrink-0 shadow-2xs">
+              <Mail className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400">Email</span>
+              <span 
+                className={`block text-xs font-semibold truncate ${emailStr ? 'text-zinc-800' : 'text-zinc-400 font-normal italic'}`}
+                title={emailStr || undefined}
+              >
+                {emailStr || 'Not provided'}
+              </span>
+            </div>
+          </div>
+          {emailStr && (
+            <button
+              type="button"
+              onClick={(e) => handleCopy(emailStr, 'email', e)}
+              title="Copy Email"
+              className="flex items-center gap-1 text-[10px] font-semibold text-brand-orange hover:text-orange-700 bg-white hover:bg-orange-50 border border-orange-200 px-2 py-1 rounded-md transition-colors cursor-pointer shrink-0 shadow-2xs"
+            >
+              {copiedKey === 'email' ? (
+                <>
+                  <Check className="h-3 w-3 text-emerald-600" />
+                  <span className="text-emerald-700 font-bold">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* 3. ADDRESS */}
+        <div className="flex items-start justify-between gap-2.5 p-2 rounded-lg bg-zinc-50/80 border border-zinc-200/60 hover:bg-zinc-50 transition-colors">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className="h-7 w-7 rounded-md bg-emerald-50 border border-emerald-200/70 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+              <MapPin className="h-3.5 w-3.5" />
+            </div>
+            <div className="min-w-0">
+              <span className="block text-[9px] font-bold uppercase tracking-wider text-zinc-400">Address</span>
+              <span className={`block text-xs font-medium leading-relaxed max-h-24 overflow-y-auto break-words ${addressStr ? 'text-zinc-800' : 'text-zinc-400 font-normal italic'}`}>
+                {addressStr || 'Not provided'}
+              </span>
+            </div>
+          </div>
+          {addressStr && (
+            <button
+              type="button"
+              onClick={(e) => handleCopy(addressStr, 'address', e)}
+              title="Copy Address"
+              className="flex items-center gap-1 text-[10px] font-semibold text-brand-orange hover:text-orange-700 bg-white hover:bg-orange-50 border border-orange-200 px-2 py-1 rounded-md transition-colors cursor-pointer shrink-0 mt-0.5 shadow-2xs"
+            >
+              {copiedKey === 'address' ? (
+                <>
+                  <Check className="h-3 w-3 text-emerald-600" />
+                  <span className="text-emerald-700 font-bold">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="h-3 w-3" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Pointer Arrow */}
+      {coords.openUpwards ? (
+        <div className="absolute top-full right-4 -mt-1 w-2.5 h-2.5 bg-white border-b border-r border-zinc-200 rotate-45 pointer-events-none" />
+      ) : (
+        <div className="absolute bottom-full right-4 -mb-1 w-2.5 h-2.5 bg-white border-t border-l border-zinc-200 rotate-45 pointer-events-none" />
       )}
+    </div>
+  );
+
+  return (
+    <div 
+      className="inline-flex items-center justify-center"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <button
+        ref={buttonRef}
+        type="button"
+        onClick={handleToggleClick}
+        title="Hover or click to view Contact Info"
+        className="p-2 rounded-lg transition-all duration-150 border cursor-pointer flex items-center justify-center group shadow-2xs hover:shadow-sm bg-orange-50 hover:bg-orange-100 text-brand-orange border-orange-200/80"
+      >
+        <Contact className="h-4 w-4 text-brand-orange transition-transform group-hover:scale-110" />
+      </button>
+
+      {isOpen && mounted && typeof document !== 'undefined' && createPortal(popoverContent, document.body)}
     </div>
   );
 }
@@ -521,39 +686,24 @@ export default function ClientManagement() {
                     </div>
                   </th>
 
-                  {/* Contact Phone */}
+                  {/* Contact Info */}
                   <th 
                     onClick={() => handleSort('phone')} 
-                    title={sortField === 'phone' ? (sortDirection === 'asc' ? 'Phone: Low to High' : 'Phone: High to Low') : 'Sort by Contact Phone'}
-                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-20"
+                    title={sortField === 'phone' ? (sortDirection === 'asc' ? 'Contact: Low to High' : 'Contact: High to Low') : 'Sort by Contact'}
+                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-28"
                   >
-                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
-                      <Phone className="h-3.5 w-3.5 text-zinc-500" />
-                      <span>Phone</span>
-                    </div>
-                  </th>
-
-                  {/* Email Address */}
-                  <th 
-                    onClick={() => handleSort('email')} 
-                    title={sortField === 'email' ? (sortDirection === 'asc' ? 'Email: A to Z' : 'Email: Z to A') : 'Sort by Email Address'}
-                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-20"
-                  >
-                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
-                      <Mail className="h-3.5 w-3.5 text-zinc-500" />
-                      <span>Email</span>
-                    </div>
-                  </th>
-
-                  {/* Delivery / Billing Address */}
-                  <th 
-                    onClick={() => handleSort('address')} 
-                    title={sortField === 'address' ? (sortDirection === 'asc' ? 'Address: A to Z' : 'Address: Z to A') : 'Sort by Address'}
-                    className="whitespace-nowrap py-3 px-3 text-center cursor-pointer select-none hover:bg-zinc-100/90 transition-colors group w-24"
-                  >
-                    <div className="flex items-center justify-center gap-1 font-bold text-zinc-700">
-                      <MapPin className="h-3.5 w-3.5 text-zinc-500" />
-                      <span>Address</span>
+                    <div className="flex items-center justify-center gap-1.5 font-bold text-zinc-700">
+                      <Contact className="h-3.5 w-3.5 text-zinc-500 group-hover:text-brand-orange transition-colors" />
+                      <span>Contact Info</span>
+                      {sortField === 'phone' ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUp className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        ) : (
+                          <ArrowDown className="h-3.5 w-3.5 text-brand-orange shrink-0" />
+                        )
+                      ) : (
+                        <ArrowUpDown className="h-3.5 w-3.5 text-zinc-350 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                      )}
                     </div>
                   </th>
 
@@ -613,43 +763,12 @@ export default function ClientManagement() {
                       </span>
                     </td>
 
-                    {/* Contact Phone (Hover Popover) */}
+                    {/* Contact Info (Combined Hover Popover) */}
                     <td className="py-3 px-3 text-center whitespace-nowrap">
-                      <HoverPopover
-                        icon={Phone}
-                        title="Contact Phone"
-                        value={client.phone}
-                        iconColor="text-amber-600"
-                        badgeBg="bg-amber-50 hover:bg-amber-100 text-amber-700 border-amber-200/80"
-                        isFirstRow={index === 0}
-                        width="w-60"
-                      />
-                    </td>
-
-                    {/* Email Address (Hover Popover) */}
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
-                      <HoverPopover
-                        icon={Mail}
-                        title="Email Address"
-                        value={client.email}
-                        iconColor="text-sky-600"
-                        badgeBg="bg-sky-50 hover:bg-sky-100 text-sky-700 border-sky-200/80"
-                        isFirstRow={index === 0}
-                        width="w-72"
-                      />
-                    </td>
-
-                    {/* Delivery / Billing Address (Hover Popover) */}
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
-                      <HoverPopover
-                        icon={MapPin}
-                        title="Delivery / Billing Address"
-                        value={client.address}
-                        iconColor="text-emerald-600"
-                        badgeBg="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200/80"
-                        isFirstRow={index === 0}
-                        width="w-80"
-                        align={index === 0 ? 'center' : 'right'}
+                      <ContactInfoPopover
+                        phone={client.phone}
+                        email={client.email}
+                        address={client.address}
                       />
                     </td>
 

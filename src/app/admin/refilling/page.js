@@ -357,7 +357,7 @@ export default function RefillingFollowUpPage() {
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500">
-            Track 1-year service expiry & proactive refilling alerts for recurring client orders.
+            Track 1-year service expiry & proactive refilling alerts.
           </p>
         </div>
 
@@ -513,25 +513,23 @@ export default function RefillingFollowUpPage() {
         {/* Alert Filter Quick Tabs */}
         <div className="flex items-center gap-1.5 overflow-x-auto pt-1 pb-0.5 no-scrollbar border-t border-zinc-100">
           <span className="text-xs font-semibold text-zinc-400 mr-1 whitespace-nowrap">Alert Filter:</span>
-          
+
           <button
             onClick={() => setActiveAlertFilter('ALL')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeAlertFilter === 'ALL'
-                ? 'bg-zinc-900 text-white shadow-xs'
-                : 'text-zinc-600 hover:bg-zinc-100'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeAlertFilter === 'ALL'
+              ? 'bg-zinc-900 text-white shadow-xs'
+              : 'text-zinc-600 hover:bg-zinc-100'
+              }`}
           >
             All ({data.counts.total})
           </button>
 
           <button
             onClick={() => setActiveAlertFilter('CRITICAL')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeAlertFilter === 'CRITICAL'
-                ? 'bg-red-600 text-white shadow-xs'
-                : 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/60'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeAlertFilter === 'CRITICAL'
+              ? 'bg-red-600 text-white shadow-xs'
+              : 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/60'
+              }`}
           >
             <Clock className="h-3.5 w-3.5" />
             <span>&le; 5 Days ({data.counts.critical})</span>
@@ -539,11 +537,10 @@ export default function RefillingFollowUpPage() {
 
           <button
             onClick={() => setActiveAlertFilter('WARNING')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeAlertFilter === 'WARNING'
-                ? 'bg-[#78350f] text-white shadow-xs'
-                : 'text-[#78350f] bg-[#fbf4eb] hover:bg-[#f5e6d6] border border-[#b45309]/40'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeAlertFilter === 'WARNING'
+              ? 'bg-[#78350f] text-white shadow-xs'
+              : 'text-[#78350f] bg-[#fbf4eb] hover:bg-[#f5e6d6] border border-[#b45309]/40'
+              }`}
           >
             <AlertTriangle className="h-3.5 w-3.5 text-[#b45309]" />
             <span>6 - 15 Days ({data.counts.warning})</span>
@@ -551,11 +548,10 @@ export default function RefillingFollowUpPage() {
 
           <button
             onClick={() => setActiveAlertFilter('APPROACHING')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeAlertFilter === 'APPROACHING'
-                ? 'bg-amber-500 text-white shadow-xs'
-                : 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeAlertFilter === 'APPROACHING'
+              ? 'bg-amber-500 text-white shadow-xs'
+              : 'text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-300'
+              }`}
           >
             <Calendar className="h-3.5 w-3.5 text-amber-600" />
             <span>1 Month Before ({data.counts.approaching})</span>
@@ -563,11 +559,10 @@ export default function RefillingFollowUpPage() {
 
           <button
             onClick={() => setActiveAlertFilter('SAFE')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-              activeAlertFilter === 'SAFE'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${activeAlertFilter === 'SAFE'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+              }`}
           >
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
             <span>Safe &gt; 30d ({data.counts.safe})</span>
@@ -672,17 +667,16 @@ export default function RefillingFollowUpPage() {
                   return (
                     <tr
                       key={order.id}
-                      className={`hover:bg-zinc-50/80 transition-colors ${
-                        isChecked
-                          ? 'bg-orange-50/40'
-                          : order.alert_level === 'CRITICAL'
+                      className={`hover:bg-zinc-50/80 transition-colors ${isChecked
+                        ? 'bg-orange-50/40'
+                        : order.alert_level === 'CRITICAL'
                           ? 'bg-red-50/20'
                           : order.alert_level === 'WARNING'
-                          ? 'bg-[#fbf4eb]/30'
-                          : order.alert_level === 'APPROACHING'
-                          ? 'bg-yellow-50/20'
-                          : ''
-                      }`}
+                            ? 'bg-[#fbf4eb]/30'
+                            : order.alert_level === 'APPROACHING'
+                              ? 'bg-yellow-50/20'
+                              : ''
+                        }`}
                     >
                       {/* Checkbox */}
                       <td className="py-3.5 pl-4 pr-2 text-center whitespace-nowrap">
@@ -802,11 +796,10 @@ export default function RefillingFollowUpPage() {
                       {/* Current Order Status */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <span
-                          className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                            order.status === 'COMPLETED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
+                          className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-full ${order.status === 'COMPLETED'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-blue-100 text-blue-800'
+                            }`}
                         >
                           {order.status === 'COMPLETED' ? 'Completed' : 'In Progress'}
                         </span>
@@ -819,13 +812,12 @@ export default function RefillingFollowUpPage() {
                           disabled={isRowSending || sendingEmail}
                           onClick={() => handleSendSingleReminder(order)}
                           title={hasEmail ? `Send reminder email to ${order.client_email}` : 'Email not available for this client'}
-                          className={`inline-flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer shadow-xs ${
-                            isRowSending
-                              ? 'bg-orange-100 text-brand-orange animate-pulse'
-                              : hasEmail
+                          className={`inline-flex items-center justify-center p-2 rounded-xl transition-all cursor-pointer shadow-xs ${isRowSending
+                            ? 'bg-orange-100 text-brand-orange animate-pulse'
+                            : hasEmail
                               ? 'bg-orange-50 hover:bg-brand-orange text-brand-orange hover:text-white border border-orange-200/80 hover:border-brand-orange'
                               : 'bg-zinc-100 hover:bg-amber-100 text-zinc-400 hover:text-amber-700 border border-zinc-200 hover:border-amber-300'
-                          }`}
+                            }`}
                         >
                           {isRowSending ? (
                             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1039,13 +1031,12 @@ export default function RefillingFollowUpPage() {
                   {(reminderResultModal.results || []).map((res, idx) => (
                     <div
                       key={idx}
-                      className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${
-                        res.status === 'SENT'
-                          ? 'bg-emerald-50/50 border-emerald-200 text-emerald-950'
-                          : res.status === 'SKIPPED'
+                      className={`p-3 rounded-xl border text-xs flex items-center justify-between gap-3 ${res.status === 'SENT'
+                        ? 'bg-emerald-50/50 border-emerald-200 text-emerald-950'
+                        : res.status === 'SKIPPED'
                           ? 'bg-amber-50/60 border-amber-200 text-amber-950'
                           : 'bg-red-50/60 border-red-200 text-red-950'
-                      }`}
+                        }`}
                     >
                       <div className="space-y-0.5">
                         <div className="flex items-center gap-2">
@@ -1063,13 +1054,12 @@ export default function RefillingFollowUpPage() {
                       </div>
 
                       <span
-                        className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${
-                          res.status === 'SENT'
-                            ? 'bg-emerald-600 text-white'
-                            : res.status === 'SKIPPED'
+                        className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase shrink-0 ${res.status === 'SENT'
+                          ? 'bg-emerald-600 text-white'
+                          : res.status === 'SKIPPED'
                             ? 'bg-amber-500 text-white'
                             : 'bg-red-600 text-white'
-                        }`}
+                          }`}
                       >
                         {res.status}
                       </span>
@@ -1128,7 +1118,7 @@ export default function RefillingFollowUpPage() {
               )}
 
               <p className="text-xs text-zinc-500 leading-relaxed">
-                Select the alert stages at which automated follow-up emails should be sent to clients. When multiple alerts are enabled, reminder emails will be dispatched at each respective deadline threshold.
+                Select alert stages to automatically send client reminder emails at each deadline.
               </p>
 
               {/* Alert Stage Triggers Checkbox List */}
@@ -1136,93 +1126,78 @@ export default function RefillingFollowUpPage() {
                 {/* 1. Red Alert */}
                 <label
                   onClick={() => toggleAutomationRule('CRITICAL')}
-                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
-                    tempAutomationRules.includes('CRITICAL')
-                      ? 'bg-red-50/80 border-red-300 text-red-950 font-semibold shadow-xs'
-                      : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
-                  }`}
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${tempAutomationRules.includes('CRITICAL')
+                    ? 'bg-red-50/80 border-red-300 text-red-950 font-semibold shadow-xs'
+                    : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
+                    }`}
                 >
                   <div
-                    className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      tempAutomationRules.includes('CRITICAL')
-                        ? 'bg-red-600 text-white'
-                        : 'border border-zinc-300 bg-white'
-                    }`}
+                    className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${tempAutomationRules.includes('CRITICAL')
+                      ? 'bg-red-600 text-white'
+                      : 'border border-zinc-300 bg-white'
+                      }`}
                   >
                     {tempAutomationRules.includes('CRITICAL') && <CheckSquare className="h-3.5 w-3.5" />}
                   </div>
                   <div className="space-y-0.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-red-700">🔴 Red Alert Trigger (&le; 5 Days)</span>
+                      <span className="text-sm font-bold text-red-700">🔴 Red Alert Trigger</span>
                       <span className="text-[10px] uppercase font-extrabold bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                        Urgent
+                        5 Days EARLY
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-500">
-                      Dispatches high-priority reminder when equipment expiry is within 5 days or expired.
-                    </p>
                   </div>
                 </label>
 
                 {/* 2. Brown Alert (15 Days) */}
                 <label
                   onClick={() => toggleAutomationRule('WARNING')}
-                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
-                    tempAutomationRules.includes('WARNING')
-                      ? 'bg-[#fbf4eb] border-[#b45309]/50 text-[#78350f] font-semibold shadow-xs'
-                      : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
-                  }`}
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${tempAutomationRules.includes('WARNING')
+                    ? 'bg-[#fbf4eb] border-[#b45309]/50 text-[#78350f] font-semibold shadow-xs'
+                    : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
+                    }`}
                 >
                   <div
-                    className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      tempAutomationRules.includes('WARNING')
-                        ? 'bg-[#78350f] text-white'
-                        : 'border border-zinc-300 bg-white'
-                    }`}
+                    className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${tempAutomationRules.includes('WARNING')
+                      ? 'bg-[#78350f] text-white'
+                      : 'border border-zinc-300 bg-white'
+                      }`}
                   >
                     {tempAutomationRules.includes('WARNING') && <CheckSquare className="h-3.5 w-3.5" />}
                   </div>
                   <div className="space-y-0.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-[#78350f]">🟤 Brown Alert Trigger (6 - 15 Days)</span>
+                      <span className="text-sm font-bold text-[#78350f]">🟤 Brown Alert Trigger</span>
                       <span className="text-[10px] uppercase font-extrabold bg-[#f3e5d7] text-[#78350f] px-2 py-0.5 rounded">
-                        15-Day Notice
+                        15-Day EARLY
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-500">
-                      Dispatches warning reminder when equipment is 15 days away from 1-year inspection.
-                    </p>
                   </div>
                 </label>
 
                 {/* 3. Yellow Alert (30 Days) */}
                 <label
                   onClick={() => toggleAutomationRule('APPROACHING')}
-                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
-                    tempAutomationRules.includes('APPROACHING')
-                      ? 'bg-amber-50/90 border-amber-300 text-amber-950 font-semibold shadow-xs'
-                      : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
-                  }`}
+                  className={`flex items-start gap-3 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${tempAutomationRules.includes('APPROACHING')
+                    ? 'bg-amber-50/90 border-amber-300 text-amber-950 font-semibold shadow-xs'
+                    : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
+                    }`}
                 >
                   <div
-                    className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${
-                      tempAutomationRules.includes('APPROACHING')
-                        ? 'bg-amber-500 text-white'
-                        : 'border border-zinc-300 bg-white'
-                    }`}
+                    className={`mt-0.5 h-5 w-5 rounded-md flex items-center justify-center shrink-0 transition-colors ${tempAutomationRules.includes('APPROACHING')
+                      ? 'bg-amber-500 text-white'
+                      : 'border border-zinc-300 bg-white'
+                      }`}
                   >
                     {tempAutomationRules.includes('APPROACHING') && <CheckSquare className="h-3.5 w-3.5" />}
                   </div>
                   <div className="space-y-0.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-amber-900">🟡 Yellow Alert Trigger (1 Month / 16 - 30 Days)</span>
+                      <span className="text-sm font-bold text-amber-900">🟡 Yellow Alert Trigger</span>
                       <span className="text-[10px] uppercase font-extrabold bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
                         30-Day Early
                       </span>
                     </div>
-                    <p className="text-xs text-zinc-500">
-                      Dispatches initial courtesy reminder 30 days before annual expiry.
-                    </p>
                   </div>
                 </label>
               </div>
@@ -1243,7 +1218,7 @@ export default function RefillingFollowUpPage() {
                   </Link>
                 </div>
                 <p className="text-[11px] text-zinc-500">
-                  Email subject &amp; body are dynamically pulled from the <strong>&ldquo;Fire Extinguisher Expiry &amp; Refilling Reminder&rdquo;</strong> template in Integration Settings. You can modify the text anytime.
+                  Email subject &amp; body are pulled from the <strong>Integration Settings</strong> template and can be edited anytime.
                 </p>
               </div>
             </div>
@@ -1358,25 +1333,22 @@ export default function RefillingFollowUpPage() {
                       <label
                         key={type.id}
                         onClick={() => toggleTypeSelection(type.id)}
-                        className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
-                          isChecked
-                            ? 'bg-orange-50/70 border-brand-orange/60 text-zinc-950 font-bold shadow-xs'
-                            : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
-                        }`}
+                        className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer select-none ${isChecked
+                          ? 'bg-orange-50/70 border-brand-orange/60 text-zinc-950 font-bold shadow-xs'
+                          : 'bg-white hover:bg-zinc-50 border-zinc-200 text-zinc-700'
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <div
-                            className={`h-5 w-5 rounded-md flex items-center justify-center transition-colors ${
-                              isChecked
-                                ? 'bg-brand-orange text-white'
-                                : 'border border-zinc-300 bg-white'
-                            }`}
+                            className={`h-5 w-5 rounded-md flex items-center justify-center transition-colors ${isChecked
+                              ? 'bg-brand-orange text-white'
+                              : 'border border-zinc-300 bg-white'
+                              }`}
                           >
                             {isChecked && <CheckSquare className="h-3.5 w-3.5" />}
                           </div>
                           <span className="text-sm">{type.name}</span>
                         </div>
-                        <span className="text-[11px] font-mono text-zinc-400">ID #{type.id}</span>
                       </label>
                     );
                   })

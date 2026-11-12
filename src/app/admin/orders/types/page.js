@@ -10,7 +10,7 @@ export default function OrderTypesPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  
+
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -182,15 +182,15 @@ export default function OrderTypesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      
+
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-200 pb-5">
         <div>
           <h1 className="text-2xl lg:text-3xl font-extrabold text-zinc-950 tracking-tight font-sans">Order Types</h1>
-          <p className="text-zinc-500 text-xs lg:text-sm mt-1">Configure and manage service categories used across client pipeline workflows.</p>
+          <p className="text-zinc-500 text-xs lg:text-sm mt-1">Configure and manage service categories.</p>
         </div>
         <div className="flex items-center gap-2.5">
-          <button 
+          <button
             onClick={fetchOrderTypes}
             className="flex items-center gap-1.5 px-3 py-2 border border-zinc-200 bg-white text-zinc-700 text-xs font-semibold rounded-lg hover:bg-zinc-50 transition-colors shadow-xs cursor-pointer"
           >
@@ -248,8 +248,8 @@ export default function OrderTypesPage() {
           {types.map((type) => {
             const linkedCount = orders.filter(o => o.order_type_id === type.id).length;
             return (
-              <div 
-                key={type.id} 
+              <div
+                key={type.id}
                 className="bg-white border border-zinc-200/90 hover:border-brand-orange/40 rounded-xl p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
               >
                 <div>
@@ -304,13 +304,13 @@ export default function OrderTypesPage() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white border border-zinc-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-slide-up">
-            
+
             <div className="bg-zinc-950 text-white p-4 sm:p-5 flex justify-between items-center shrink-0">
               <div>
                 <h3 className="text-base font-bold">Add Order Type</h3>
                 <p className="text-[11px] text-zinc-400 mt-0.5">Define a new service category for orders</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddModal(false)}
                 className="text-zinc-400 hover:text-white font-bold cursor-pointer p-1"
               >
@@ -319,7 +319,7 @@ export default function OrderTypesPage() {
             </div>
 
             <form onSubmit={handleAddSubmit} className="p-5 space-y-4">
-              
+
               {formError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2 text-xs">
                   <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />
@@ -371,13 +371,13 @@ export default function OrderTypesPage() {
       {showEditModal && selectedType && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white border border-zinc-200 rounded-2xl max-w-md w-full shadow-2xl overflow-hidden animate-slide-up">
-            
+
             <div className="bg-zinc-950 text-white p-4 sm:p-5 flex justify-between items-center shrink-0">
               <div>
                 <h3 className="text-base font-bold">Edit Order Type</h3>
                 <p className="text-[11px] text-zinc-400 mt-0.5">Modify service category title</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowEditModal(false)}
                 className="text-zinc-400 hover:text-white font-bold cursor-pointer p-1"
               >
@@ -386,7 +386,7 @@ export default function OrderTypesPage() {
             </div>
 
             <form onSubmit={handleEditSubmit} className="p-5 space-y-4">
-              
+
               {formError && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg flex items-center gap-2 text-xs">
                   <AlertCircle className="h-4 w-4 shrink-0 text-red-600" />

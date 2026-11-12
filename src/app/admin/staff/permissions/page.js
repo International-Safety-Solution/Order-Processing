@@ -63,7 +63,7 @@ export default function PermissionsScopeManagement() {
     setIsEditMode(true);
     setEditingId(scope.id);
     setName(scope.name);
-    
+
     const perms = scope.permissions || {};
     setOrderProcessing({
       view: perms.order_processing?.view || false,
@@ -175,7 +175,7 @@ export default function PermissionsScopeManagement() {
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-brand-black tracking-tight font-sans">Permissions Scope Registry</h1>
+          <h1 className="text-3xl font-extrabold text-brand-black tracking-tight font-sans">Permissions Manager</h1>
           <p className="text-zinc-500 text-sm mt-1">Configure access groups and functional permissions templates for staff roles.</p>
         </div>
         <button
@@ -323,9 +323,8 @@ export default function PermissionsScopeManagement() {
             <form onSubmit={handleFormSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[70vh]">
               {/* Feedback messages */}
               {message.text && (
-                <div className={`p-3 rounded-lg flex items-center gap-2 text-sm border ${
-                  message.type === 'success' ? 'bg-green-50 border-green-200 text-brand-green' : 'bg-red-50 border-red-200 text-red-700'
-                }`}>
+                <div className={`p-3 rounded-lg flex items-center gap-2 text-sm border ${message.type === 'success' ? 'bg-green-50 border-green-200 text-brand-green' : 'bg-red-50 border-red-200 text-red-700'
+                  }`}>
                   {message.type === 'success' ? <CheckCircle2 className="h-5 w-5 shrink-0" /> : <AlertCircle className="h-5 w-5 shrink-0" />}
                   <span>{message.text}</span>
                 </div>
